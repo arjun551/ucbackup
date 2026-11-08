@@ -1,73 +1,94 @@
-# UC ESPORTS TOURNAMENT — upgraded web project
+# UC ESPORTS TOURNAMENT — Firebase Spark Free Edition
 
-This project targets the Firebase project `ucesportslast`. The player website is a static Firebase/Vercel-hostable frontend; wallet, tournament registration, rewards, results, withdrawals and admin actions are handled by Firebase Cloud Functions in `asia-south1`.
+This branch is a Spark-compatible rebuild of the existing UC ESPORTS TOURNAMENT website. It keeps the existing dark gaming UI and uses Firebase Authentication + Cloud Firestore only. It does not deploy Cloud Functions or Firebase Storage.
 
-## Included
+## Included features
 
-- Google sign-in for players; Firebase Auth session.
-- Player profile: username, mobile, profile image, Free Fire/BGMI/Minecraft IDs.
-- Tournament list with Solo (1 tag), Duo (2 tags) and Squad (4 tags) registration.
-- Server-side wallet charging and tournament seat registration.
-- Manual UPI deposits: QR generated from the admin-configured UPI ID, player submits UTR + screenshot, admin manually verifies before credit.
-- Winnings withdrawal requests; server reserves winnings, admin marks paid or rejects (refunds the reservation).
-- Daily reward sequence ₹2, ₹4, ₹6, ₹8, ₹3, ₹7, ₹3; claim once per India-local day. These are non-withdrawable bonus credits.
-- XP: +50 for joining, +50 when a match is completed, +200 for a published winner. Levels every 500 XP; level rewards are non-withdrawable bonus credits, ₹2–₹8 per level.
-- Leaderboard, transaction history, live stream URL / spectate link, room details for registered players.
-- Admin panel: dashboard, users, block/unblock, edit profile, message, soft-delete, tournaments, rooms, stream URLs, results, payments, withdrawals, promotions, settings and audit log.
-- Firestore and Storage rules keep wallets and payment records server-write-only; player payment proof uploads are owner-scoped.
+### Player website
+- Google sign-in and automatic player profile creation.
+- Player profile: username, mobile, Google profile photo, Free Fire UID, BGMI UID and Minecraft gamertag.
+- Tournament listing for Free Fire, BGMI and Minecraft.
+- Solo (1 tag), Duo (2 tags) and Squad (4 tags) registration.
+- Free entry only; one team registration per player per tournament.
+- Private Room ID/password shown only to registered players after the configured room-open window.
+- XP: +50 for joining, +50 for completing a match, +200 for a published result plus the XP prize assigned by admin.
+- Daily XP rewards with a 7-day sequence and 24-hour claim cooldown.
+- Levels every 500 XP, player titles, wins and XP leaderboard.
+- Player notifications, match status and YouTube spectate links.
+- Wallet page/navigation retained and clearly marked Coming Soon.
 
-## 1. Firebase setup
+### Admin panel (/admin/)
+- Verified owner/admin/moderator access.
+- Dashboard: player count, active players, tournament totals, registered teams and XP awarded.
+- Player search, profile view/edit, messages, block/unblock and soft-delete.
+- Create/edit/delete tournaments, start/complete/cancel matches, set private room credentials.
+- Publish match ranks and XP prizes; results, XP and leaderboard changes are committed in a Firestore transaction.
+- Promotions and announcements (image URL fields instead of Storage uploads).
+- Public settings, room-open timing, staff roles and audit log.
+- No deposit, UPI, payment-proof, withdrawal or cash-payout controls.
 
-1. Open Firebase Console and select `ucesportslast`.
-2. Authentication → Sign-in providers → enable **Google**. For the admin panel, also enable Email/Password if you want password login.
-3. Create Firestore in `asia-south1` and enable Firebase Storage.
-4. Confirm the web app config in `public/firebase-config.js` matches this project.
-5. Copy `functions/.env.example` to `functions/.env`. Keep `FIRST_ADMIN_EMAIL=ucwebdeveloper07@gmail.com` and do not add passwords or gateway secrets to this file.
-6. In Authentication, create/sign in to the admin account with that email and verify the email address.
-7. Deploy Functions and rules, then open `/admin/` and sign in with Google or Email/Password. Click **Run first-time admin setup** once.
+## What changed for Firebase Spark
 
-The admin password is never stored in this project. If a password was shared in chat, change it in Firebase Authentication before using the live site.
+- Cloud Functions and their dependency folder were removed from this branch.
+- Firebase Storage and its rules were removed from the deployment config.
+- Tournament entry fees are forced to 0; prize pools and results are XP, not rupees.
+- Cash wallet balances are never writable by the website. Deposits and withdrawals are disabled.
+- Daily rewards and tournament operations use Firestore transactions with restrictive security rules.
+- Admin authorization uses a verified owner email allowlist and owner-managed admin_roles documents. Firestore rules enforce privileged writes.
+- The player/admin frontends use public/spark-api.js instead of callable Cloud Functions.
 
-## 2. Configure UPI
+**Important architecture limitation:** Spark has no trusted Cloud Functions runtime. Firestore Security Rules enforce permitted data changes, but operations requiring trusted server-only execution (Firebase Auth account disabling, FCM push delivery, scheduled reminders/expiry, external payment webhooks, and authoritative anti-cheat) are not part of this free edition. Admin block/unblock and soft-delete are application-level access flags, not Firebase Authentication account disablement. Do not use this edition for real-money tournaments.
 
-In `/admin/` → Settings → Edit platform settings, set:
-- **UPI ID**: the merchant UPI ID that receives deposits.
-- **UPI merchant name**: the payee name displayed in the QR.
-- Minimum withdrawal and room-open minutes as required.
+## Firebase setup
 
-Players create a UPI QR, pay externally, then submit the UTR and payment screenshot. The deposit remains in **review** until an admin checks the bank/UPI statement and approves it. Never approve from screenshot alone if the UTR/payment cannot be independently matched.
+1. Open Firebase Console and select project ucesportslast.
+2. In Authentication → Sign-in method, enable Google. If you want email/password sign-in for the admin page, enable Email/Password too.
+3. In Authentication → Settings → Authorized domains, add your deployed domain.
+4. Confirm public/firebase-config.js contains the correct Firebase web-app config for ucesportslast.
+5. Create/enable Cloud Firestore in the same region as your existing database. Do not create Firebase Storage or enable billing for this branch.
+6. Verify that the owner account ucwebdeveloper07@gmail.com can sign in with Google and that its email is verified.
+7. Deploy Firestore rules and Hosting from this branch.
 
-## 3. Install and deploy
+The owner email is an allowlist identifier, not a password or API secret. To change the owner account, update the email in both firestore.rules and public/spark-api.js before deploying. Staff roles can then be assigned by the owner from /admin/ using the target user's Firebase Auth UID.
 
-Use Node.js 22 for Cloud Functions (and Node 20.19+ for the root build check).
+## Local build and deploy
+
+Requirements: Node.js 20.19+ and Firebase CLI.
 
 ```bash
 npm install
 npm run build
-npm install --prefix functions
-npm install -g firebase-tools
 firebase login
 firebase use ucesportslast
-firebase deploy
+firebase deploy --only firestore:rules
+firebase deploy --only hosting
 ```
 
-For Vercel, import the repository. `vercel.json` serves the `public/` folder. Cloud Functions and Firebase rules must still be deployed separately with the Firebase CLI; Vercel does not deploy them.
-
-## 4. Optional Razorpay adapter
-
-The legacy Razorpay callable/webhook adapter remains in `functions/index.js` but is not used by the manual-UPI player flow. Only configure it if your approved payment gateway account supports this business category. Store keys with Firebase Secret Manager:
+For a combined deployment:
 
 ```bash
-firebase functions:secrets:set RZP_KEY_ID
-firebase functions:secrets:set RZP_KEY_SECRET
-firebase functions:secrets:set RZP_WEBHOOK_SECRET
+firebase deploy --only hosting,firestore
 ```
 
-Never place secret values in frontend files, GitHub, Vercel public variables, or chat.
+For Vercel, import the repository and keep vercel.json pointing at public/. The npm run build script validates required project files and parses inline JavaScript in the player page, admin page and Spark API. It does not prove that a live Firebase project has the right Auth provider, rules deployment, indexes, or permissions; complete the manual smoke tests below.
 
-## 5. Important checks before real-money launch
+## Required first-run checks
 
-- Test Google Auth, first-admin setup, rules, UPI proof upload, manual approval/rejection, withdrawal reserve/refund, tournament join/refund, results and room access in a Firebase test project first.
-- The `npm run build` check validates project structure and JavaScript syntax; it does **not** prove live Firebase deployment or payment settlement.
-- Real-money esports entry fees and prizes can trigger legal, tax and payment-provider restrictions in India. Get qualified legal advice and written gateway approval before accepting real payments.
-- Financial records are preserved on user soft-delete. Do not manually delete wallet/transaction/deposit records.
+1. Google sign-in creates a profile with level 1 and 0 XP.
+2. Profile name, mobile and game IDs save and remain after sign-out/sign-in.
+3. Create a future Solo, Duo and Squad tournament in /admin/.
+4. Join with exactly 1, 2 or 4 player tags; verify team count and +50 XP.
+5. Try joining twice and try joining a full/started tournament; both must be rejected.
+6. Before the room-open window, room details must be denied; after it opens, only registered players and staff can read them.
+7. Claim daily XP once; a second claim within 24 hours must be rejected.
+8. Start and complete a tournament; completion XP must be awarded only once.
+9. Publish results; verify rank, XP prize, wins, leaderboard and public result document.
+10. Verify announcements, promotions, admin role access and audit logs.
+11. Confirm wallet actions are disabled and no deposit/withdrawal/cash-prize flow is exposed.
+12. Verify a normal signed-in player cannot create tournaments, set rooms, publish results, edit other users, change roles or write wallet balances.
+
+## Existing data and compatibility
+
+This branch does not delete existing Firestore collections. Old wallets, transactions, deposits, withdrawals, payment records and tournament data may remain in the database, but the Spark UI does not process or credit money. Existing paid tournaments should be reviewed and recreated as free-entry XP tournaments before public use. Existing custom-claim staff roles from the old Functions version are not automatically migrated; the owner must assign staff documents from the new admin panel.
+
+The current build is a static Firebase web app and can later be wrapped as a PWA/Capacitor Android app after the web smoke tests pass.
