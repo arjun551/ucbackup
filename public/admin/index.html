@@ -75,12 +75,12 @@ async function users(){
 async function tournaments(){
  const q=await db.collection('tournaments').orderBy('startAt','desc').limit(150).get();
  return '<h2>Tournaments</h2>'+btn('Create tournament',()=>tournamentForm())+tbl(['Tournament','Game','Format','XP pool','Teams','Status','Start','Actions'],q.docs.map(d=>{
- const t=d.data(),id=d.id,s=t.status;let a=btn('Edit',()=>tournamentForm(id,t),'g')+btn('Room',()=>roomForm(id),'g');
- if(s==='upcoming')a+=btn('Start',()=>act(id,'start'));
- if(s==='live'&&RANK[role]>=2)a+=btn('Complete',()=>act(id,'complete'));
- if(['upcoming','live'].includes(s))a+=btn('Cancel',()=>act(id,'cancel'),'r');
+ const t=d.data(),id=d.id,s=t.status,legacy=Number(t.fee||0)>0;let a=legacy?'<span class="er">Legacy paid · disabled</span>':btn('Edit',()=>tournamentForm(id,t),'g')+(btn('Room',()=>roomForm(id),'g'));
+ if(!legacy&&s==='upcoming')a+=btn('Start',()=>act(id,'start'));
+ if(!legacy&&s==='live'&&RANK[role]>=2)a+=btn('Complete',()=>act(id,'complete'));
+ if(!legacy&&['upcoming','live'].includes(s))a+=btn('Cancel',()=>act(id,'cancel'),'r');
  if(!t.joined&&RANK[role]>=2)a+=btn('Delete',async()=>{if(confirm('Delete tournament?')){await call('adminUpsert',{col:'tournaments',id,del:true});go()}},'r');
- return[esc(t.title),esc(t.game),esc(t.type),num(t.prize)+' XP',num(t.joined)+'/'+num(t.max),esc(s),when(t.startAt),a]
+ return[esc(t.title),esc(t.game),esc(t.type),legacy?'—':num(t.prize)+' XP',num(t.joined)+'/'+num(t.max),esc(s),when(t.startAt),a]
  }));
 }
 async function act(id,action){
@@ -89,7 +89,7 @@ async function act(id,action){
 }
 async function results(){
  const q=await db.collection('tournaments').where('status','in',['live','completed']).get();
- const ts=q.docs.filter(d=>!d.data().resultsPublished);
+ const ts=q.docs.filter(d=>!d.data().resultsPublished&&Number(d.data().fee||0)===0);
  return '<h2>Match results</h2><p class="mu">Assign rank and XP prizes. Total XP prize cannot exceed the tournament XP pool.</p><select id="resultTour"><option value="">Choose tournament</option>'+ts.map(d=>'<option value="'+d.id+'">'+esc(d.data().title)+' · '+num(d.data().prize)+' XP</option>').join('')+'</select><div id="resultRows"></div>';
 }
 async function promotions(){
