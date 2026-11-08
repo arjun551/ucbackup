@@ -11,7 +11,7 @@ if(!cfg.includes("projectId:'ucesportslast'")){console.error('Firebase project c
 try{cp.execFileSync(process.execPath,['--check','functions/index.js'],{stdio:'inherit'})}catch{process.exit(1)}
 for(const file of ['public/index.html','public/admin/index.html']){
  const html=fs.readFileSync(file,'utf8');
- for(const m of html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/gi))if(m[1].trim())new vm.Script(m[1],{filename:file});
+ for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi))if(m[1].trim())new vm.Script(m[1],{filename:file});
 }
 const player=fs.readFileSync('public/index.html','utf8'),admin=fs.readFileSync('public/admin/index.html','utf8');
 const functions=fs.readFileSync('functions/index.js','utf8'),storage=fs.readFileSync('storage.rules','utf8');
@@ -28,5 +28,5 @@ if(!storage.includes("allow read: if kind != 'payment-proofs'")){console.error('
 for(const secret of ['RZP_KEY_ID','RZP_KEY_SECRET','RZP_WEBHOOK_SECRET','FIRST_ADMIN_EMAIL']){
  if(!functions.includes(secret)){console.error('Missing server secret binding: '+secret);process.exit(1)}
 }
-if(/RZP_KEY_SECRET\\s*[:=]\\s*['"]/.test(player+admin+cfg)){console.error('A Razorpay secret appears in frontend source.');process.exit(1)}
+if(/RZP_KEY_SECRET\s*[:=]\s*['"]/.test(player+admin+cfg)){console.error('A Razorpay secret appears in frontend source.');process.exit(1)}
 console.log('UC Esports full-version checks passed: project files, Vercel config, JavaScript syntax, Razorpay flows, admin payment/withdrawal actions and private payment-proof rule.');
