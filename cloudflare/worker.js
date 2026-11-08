@@ -170,6 +170,65 @@ function corsHeaders(request, env) {
     "vary": "Origin"
   };
 }
+async function ensurePlayerProfile(claims, env) {
+  const uid = claims.sub;
+  let userDoc = await getDocument(env, "users/" + uid);
+  if (!userDoc) {
+    const rawName = String(claims.name || (claims.email || "player").split("@")[0]).replace(/[^\w ]/g, "").slice(0, 24);
+    const username = rawName.length >= 3 ? rawName : "Player_" + uid.slice(0, 4);
+    try {
+      await createDocument(env, "users", uid, {
+        username,
+        email: claims.email || "",
+        photoURL: claims.picture || "",
+        mobile: "",
+        gameIds: {},
+        notify: { match: true, room: true, pay: true },
+        blocked: false,
+        deleted: false,
+        wins: 0,
+        joined: 0,
+        xp: 0,
+        level: 1,
+        title: "Rookie",
+        dailyStreak: 0,
+        createdAt: { __timestamp: new Date().toISOString() },
+        lastSeen: { __timestamp: new Date().toISOString() }
+      });
+    } catch (e) {
+      if (e.status !== 409) throw e;
+    }
+    userDoc = await getDocument(env, "users/" + uid);
+  }
+  const walletDoc = await getDocument(env, "wallets/" + uid);
+  if (!walletDoc) {
+    try {
+      await createDocument(env, "wallets", uid, {
+        deposit: 0, winnings: 0, bonus: 0, earned: 0, withdrawn: 0
+      });
+    } catch (e) {
+      if (e.status !== 409) throw e;
+    }
+  }
+  const user = readFields(userDoc);
+  if (!userDoc || user.blocked === true || user.deleted === true)
+    throw new Error("This account is blocked or unavailable.");
+  return { user: readFields(userDoc), walletReady: true };
+}
+
+async function handleEnsureProfile(request, env) {
+  const authorization = request.headers.get("authorization") || "";
+  if (!authorization.startsWith("Bearer ")) return jsonResponse({ error: "Sign in to continue." }, 401);
+  try {
+    const claims = await verifyFirebaseIdToken(authorization.slice(7), env.FIREBASE_PROJECT_ID);
+    const result = await ensurePlayerProfile(claims, env);
+    return jsonResponse({ success: true, profile: result.user });
+  } catch (e) {
+    console.error("Profile setup failed", e.message);
+    return jsonResponse({ error: "Could not initialize your player profile." }, 403);
+  }
+}
+
 async function handleCreateQr(request, env) {
   const authorization = request.headers.get("authorization") || "";
   if (!authorization.startsWith("Bearer ")) return jsonResponse({ error: "Sign in to continue." }, 401);
@@ -183,10 +242,9 @@ async function handleCreateQr(request, env) {
   if (!Number.isInteger(amount) || amount < 10 || amount > 50000)
     return jsonResponse({ error: "Deposit amount must be between ₹10 and ₹50,000." }, 400);
 
-  const userDoc = await getDocument(env, "users/" + claims.sub);
-  const user = readFields(userDoc);
-  if (!userDoc || user.blocked === true || user.deleted === true)
-    return jsonResponse({ error: "This account cannot add money." }, 403);
+  let profile;
+  try { profile = await ensurePlayerProfile(claims, env); }
+  catch { return jsonResponse({ error: "This account cannot add money." }, 403); }
 
   const depositId = crypto.randomUUID().replace(/-/g, "");
   const expiresAt = Date.now() + 5 * 60 * 1000;
@@ -325,6 +383,14 @@ export default {
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
     if (request.method === "GET" && url.pathname === "/health")
       return jsonResponse({ success: true, service: "UC Esports Razorpay Backend", status: "online" }, 200, cors);
+    if (request.method === "POST" && url.pathname === "/ensure-profile") {
+      if (request.headers.get("origin") && cors["access-control-allow-origin"] === "null")
+        return jsonResponse({ error: "Origin not allowed." }, 403, cors);
+      const response = await handleEnsureProfile(request, env);
+      const headers = new Headers(response.headers);
+      for (const [k, v] of Object.entries(cors)) headers.set(k, v);
+      return new Response(response.body, { status: response.status, headers });
+    }
     if (request.method === "POST" && url.pathname === "/create-qr") {
       if (request.headers.get("origin") && cors["access-control-allow-origin"] === "null")
         return jsonResponse({ error: "Origin not allowed." }, 403, cors);
