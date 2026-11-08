@@ -347,38 +347,71 @@
         if (!w || typeof w.uid !== 'string' || seen.has(w.uid) || !Number.isInteger(w.rank) || w.rank < 1 || !Number.isInteger(w.prize) || w.prize < 0) fail('Each winner needs a unique player, a whole-number rank and a whole-number XP prize.');
         seen.add(w.uid);
       });
-      const tr = tournamentRef(id);
+      const tr = tournamentRef(id), tourSnap = await tr.get();
+      if (!tourSnap.exists) fail('Tournament not found.');
+      const tour = tourSnap.data();
+      if (!['live', 'completed'].includes(tour.status) || tour.resultsPublished) fail('Results cannot be published for this tournament.');
+      if (winners.reduce((sum, w) => sum + w.prize, 0) > Number(tour.prize || 0)) fail('XP prizes add up to more than the tournament XP pool.');
+
+      // Preflight all entrants before any award writes, then commit small chunks.
+      // Firestore Security Rules cap document-access calls in one transaction.
+      const preflightRefs = winners.flatMap(w => [registrationRef(id, w.uid), userRef(w.uid)]);
+      const preflight = await Promise.all(preflightRefs.map(ref => ref.get()));
+      winners.forEach((w, i) => {
+        const reg = preflight[i * 2], us = preflight[i * 2 + 1];
+        if (!reg.exists || reg.data().status !== 'registered') fail('A selected winner is not an eligible registered player.');
+        if (!us.exists) fail('A selected player profile is missing.');
+        if (reg.data().resultPublished
+          && (reg.data().rank !== w.rank || Number(reg.data().prizeXp || 0) !== w.prize)) {
+          fail('Some results were already partially published with different ranks or XP prizes. Contact the owner before retrying.');
+        }
+      });
+
       const resultRows = [];
-      await db.runTransaction(async tx => {
-        resultRows.length = 0;
-        const refs = [tr];
-        winners.forEach(w => refs.push(registrationRef(id, w.uid), userRef(w.uid)));
-        const snaps = await Promise.all(refs.map(ref => tx.get(ref)));
-        const ts = snaps[0];
-        if (!ts.exists) fail('Tournament not found.');
-        const tour = ts.data();
-        if (!['live', 'completed'].includes(tour.status) || tour.resultsPublished) fail('Results cannot be published for this tournament.');
-        if (winners.reduce((sum, w) => sum + w.prize, 0) > Number(tour.prize || 0)) fail('XP prizes add up to more than the tournament XP pool.');
-        winners.forEach((w, i) => {
-          const reg = snaps[1 + i * 2], us = snaps[2 + i * 2];
-          if (!reg.exists || reg.data().status !== 'registered' || reg.data().resultPublished) fail('A selected winner is not an eligible registered player.');
-          if (!us.exists) fail('A selected player profile is missing.');
-          const user = us.data(), xp = Number(user.xp || 0) + 200 + w.prize;
-          resultRows.push({ uid: w.uid, username: clean(user.username || 'Player', 24), rank: w.rank, prize: w.prize });
-          const wins = Number(user.wins || 0) + (w.rank === 1 ? 1 : 0);
-          const level = levelFor(xp);
-          tx.update(userRef(w.uid), { xp: xp, wins: wins, level: level, title: titleFor(level) });
-          tx.update(registrationRef(id, w.uid), { rank: w.rank, prizeXp: w.prize, resultPublished: true });
-          tx.set(leaderboardRef(w.uid), {
-            uid: w.uid, username: user.username || 'Player', photoURL: user.photoURL || '',
-            xp: xp, wins: wins
-          }, { merge: true });
-          tx.set(db.collection('notifications').doc(), {
-            uid: w.uid, title: 'Tournament result',
-            body: 'You placed #' + w.rank + ' in ' + clean(tour.title, 100) + ' and earned ' + (200 + w.prize) + ' XP.',
-            read: false, at: F().serverTimestamp()
+      for (let offset = 0; offset < winners.length; offset += 6) {
+        const chunk = winners.slice(offset, offset + 6), chunkRows = [];
+        await db.runTransaction(async tx => {
+          chunkRows.length = 0;
+          const refs = [tr];
+          chunk.forEach(w => refs.push(registrationRef(id, w.uid), userRef(w.uid)));
+          const snaps = await Promise.all(refs.map(ref => tx.get(ref)));
+          const ts = snaps[0];
+          if (!ts.exists || !['live', 'completed'].includes(ts.data().status) || ts.data().resultsPublished) fail('Results cannot be published for this tournament.');
+          chunk.forEach((w, i) => {
+            const reg = snaps[1 + i * 2], us = snaps[2 + i * 2];
+            if (!reg.exists || reg.data().status !== 'registered') fail('A selected winner is not an eligible registered player.');
+            if (!us.exists) fail('A selected player profile is missing.');
+            const user = us.data();
+            if (reg.data().resultPublished) {
+              if (reg.data().rank !== w.rank || Number(reg.data().prizeXp || 0) !== w.prize) {
+                fail('Some results were already partially published with different ranks or XP prizes.');
+              }
+              chunkRows.push({ uid: w.uid, username: clean(user.username || 'Player', 24), rank: w.rank, prize: w.prize });
+              return;
+            }
+            const xp = Number(user.xp || 0) + 200 + w.prize;
+            const wins = Number(user.wins || 0) + (w.rank === 1 ? 1 : 0);
+            const level = levelFor(xp);
+            tx.update(userRef(w.uid), { xp: xp, wins: wins, level: level, title: titleFor(level) });
+            tx.update(registrationRef(id, w.uid), { rank: w.rank, prizeXp: w.prize, resultPublished: true });
+            tx.set(leaderboardRef(w.uid), {
+              uid: w.uid, username: user.username || 'Player', photoURL: user.photoURL || '',
+              xp: xp, wins: wins
+            }, { merge: true });
+            tx.set(db.collection('notifications').doc(), {
+              uid: w.uid, title: 'Tournament result',
+              body: 'You placed #' + w.rank + ' in ' + clean(tour.title, 100) + ' and earned ' + (200 + w.prize) + ' XP.',
+              read: false, at: F().serverTimestamp()
+            });
+            chunkRows.push({ uid: w.uid, username: clean(user.username || 'Player', 24), rank: w.rank, prize: w.prize });
           });
         });
+        resultRows.push(...chunkRows);
+      }
+
+      await db.runTransaction(async tx => {
+        const current = await tx.get(tr);
+        if (!current.exists || current.data().resultsPublished) fail('Results were already published.');
         tx.set(db.doc('results/' + id), {
           tid: id, title: clean(tour.title, 100), game: clean(tour.game, 40),
           winners: resultRows, at: F().serverTimestamp()
