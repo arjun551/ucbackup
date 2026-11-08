@@ -3,7 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
     function owner() { return signedIn() && request.auth.token.email == 'ucwebdeveloper07@gmail.com' && request.auth.token.email_verified == true; }
-    function roleDoc() { return signedIn() ? get(/databases/$(database)/documents/admin_roles/$(request.auth.uid)) : null; }
+    function roleDoc() { return signedIn() && request.auth.token.email_verified == true ? get(/databases/$(database)/documents/admin_roles/$(request.auth.uid)) : null; }
     function role() { return owner() ? 'superadmin' : (roleDoc() != null && roleDoc().data.role is string ? roleDoc().data.role : ''); }
     function moderator() { return role() in ['moderator','admin','superadmin']; }
     function admin() { return role() in ['admin','superadmin']; }
