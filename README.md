@@ -4,7 +4,7 @@ This branch is the pure responsive website edition. Android, Capacitor, installa
 
 ## Architecture
 - Website: static HTML/CSS/JavaScript in `public/`, served by Vercel.
-- Identity and data: Firebase Authentication, Cloud Firestore and Cloud Storage on the Firebase Spark project.
+- Identity and data: Firebase Authentication and Cloud Firestore on the Firebase Spark project. Profile photos and manual payment proofs are compressed and stored as Firestore documents; Firebase Storage is not used.
 - Trusted server operations: Vercel Node.js API routes in `api/`, using Firebase Admin SDK.
 - Payments: Razorpay QR creation on the server and signature-verified webhook at `/api/razorpay-webhook`.
 - Source: GitHub branch `spark-vercel-website`.
@@ -27,7 +27,6 @@ Wallet balances, tournament entry charges, withdrawals, room credentials, result
 ## Required environment variables
 Set these in local `.env.local` and later in Vercel Project Settings → Environment Variables:
 - `FIREBASE_SERVICE_ACCOUNT_JSON`: complete JSON of a **newly generated, unrevoked** Firebase service-account key. Store it as one JSON string. Never paste it into source code, GitHub, or chat.
-- `FIREBASE_STORAGE_BUCKET`: `ucesportslast.firebasestorage.app`
 - `FIRST_ADMIN_EMAIL`: `ucwebdeveloper07@gmail.com`
 - `RZP_KEY_ID`: Razorpay Test Mode key ID while developing.
 - `RZP_KEY_SECRET`: Razorpay Test Mode secret.
@@ -39,7 +38,7 @@ Do not reuse any previously exposed Firebase service-account private key. Revoke
 ## Firebase setup
 - Enable Google provider in Firebase Authentication.
 - Add `localhost` and the deployed website domain to Authorized domains.
-- Publish `firestore.rules` and `storage.rules` to the existing Firebase project.
+- Publish `firestore.rules` to the existing Firebase project.
 - The public Firebase Web config is in `public/firebase-config.js`; it is not a service-account credential.
 - First-admin setup requires the exact verified email in `FIRST_ADMIN_EMAIL`. Sign in with that account and use the setup control once.
 
@@ -52,6 +51,8 @@ Do not reuse any previously exposed Firebase service-account private key. Revoke
 - Live payments and real-money esports operations require Razorpay's explicit business-model approval and a hosting arrangement whose terms permit the commercial activity. Do not enable live keys until approval is confirmed.
 
 ## Verification scope
+Images are compressed in the browser before upload. Manual payment proof data is limited to 500 KB and stored in a private Firestore collection to stay within the document-size limit. This is suitable for low-volume proof review, not bulk image hosting.
+
 The project check validates repository structure and JavaScript syntax. It does not prove Firebase credentials, Google OAuth, Firestore deployment, Razorpay merchant approval, webhook delivery or live-money settlement. Those require local integration tests and provider-side configuration.
 
 ## Pages and features
