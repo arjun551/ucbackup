@@ -1,4 +1,4 @@
-const backend=require('./_lib/backend');
+const backend=require('../lib/backend');
 module.exports=async function(req,res){
  if(req.method!=='POST'){res.setHeader('Allow','POST');return res.status(405).json({error:'Method not allowed'});}
  const expected=process.env.CRON_SECRET||'';
