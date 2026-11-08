@@ -1,4 +1,4 @@
-const backend=require('./_lib/backend');
+const backend=require('../lib/backend');
 const {getAuth}=require('firebase-admin/auth');
 const ALLOWED=new Set([
  'ensurePlayerProfile','setupFirstAdmin','setRole','adminBlockUser','adminEditUser','adminMessageUser','adminDeleteUser','saveFcmToken',
