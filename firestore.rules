@@ -48,7 +48,8 @@ service cloud.firestore {
       allow update: if moderator() || (signedIn()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['joined','playerCount'])
         && request.resource.data.joined == resource.data.joined + 1
-        && request.resource.data.playerCount == resource.data.playerCount + request.resource.data.playerCount - resource.data.playerCount
+        && request.resource.data.playerCount == resource.data.playerCount + getAfter(/databases/$(database)/documents/registrations/$(tid + '_' + request.auth.uid)).data.seatCount
+        && request.resource.data.joined <= resource.data.max
         && getAfter(/databases/$(database)/documents/registrations/$(tid + '_' + request.auth.uid)).data.status == 'registered');
       match /private/room {
         allow read: if moderator() || (signedIn() && registrationExists(tid,request.auth.uid)
@@ -98,8 +99,8 @@ service cloud.firestore {
     match /leaderboards/{uid} {
       allow read: if true;
       allow create, update: if (mine(uid) && request.resource.data.uid == uid
-        && request.resource.data.xp == get(/databases/$(database)/documents/users/$(uid)).data.xp
-        && request.resource.data.wins == get(/databases/$(database)/documents/users/$(uid)).data.wins) || moderator();
+        && request.resource.data.xp == getAfter(/databases/$(database)/documents/users/$(uid)).data.xp
+        && request.resource.data.wins == getAfter(/databases/$(database)/documents/users/$(uid)).data.wins) || moderator();
       allow delete: if admin();
     }
     match /results/{id} { allow read: if true; allow write: if admin(); }
