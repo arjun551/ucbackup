@@ -165,7 +165,7 @@
         if (user.blocked || user.deleted) fail('Your account cannot claim rewards.');
         const last = user.lastDailyClaimAt && user.lastDailyClaimAt.toMillis ? user.lastDailyClaimAt.toMillis() : 0;
         if (last && now() - last < 24 * 60 * 60 * 1000) fail('Your daily XP reward has already been claimed. Try again after 24 hours.');
-        const streak = (Number(user.dailyStreak || 0) % 7) + 1;
+        const streak = last && now() - last <= 48 * 60 * 60 * 1000 ? (Number(user.dailyStreak || 0) % 7) + 1 : 1;
         const reward = DAILY_XP[streak - 1];
         const xp = Number(user.xp || 0) + reward, level = levelFor(xp);
         tx.update(ur, {
