@@ -26,6 +26,7 @@ service cloud.firestore {
     match /tournament_rosters/{tid}/teams/{uid} { allow read: if true; }
     match /transactions/{id} { allow read: if mine(resource.data.uid) || staff(); }
     match /deposits/{id} { allow read: if mine(resource.data.uid) || staff(); }
+    match /deposit_proofs/{id} { allow read, write: if false; }
     match /withdrawals/{id} { allow read: if mine(resource.data.uid) || staff(); }
     match /notifications/{id} {
       allow read: if mine(resource.data.uid);
