@@ -3,8 +3,9 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
     function owner() { return signedIn() && request.auth.token.email == 'ucwebdeveloper07@gmail.com' && request.auth.token.email_verified == true; }
-    function roleDoc() { return signedIn() && request.auth.token.email_verified == true ? get(/databases/$(database)/documents/admin_roles/$(request.auth.uid)) : null; }
-    function role() { return owner() ? 'superadmin' : (roleDoc() != null && roleDoc().data.role is string ? roleDoc().data.role : ''); }
+    function role() { return owner() ? 'superadmin' : (signedIn() && request.auth.token.email_verified == true
+      && exists(/databases/$(database)/documents/admin_roles/$(request.auth.uid))
+      ? get(/databases/$(database)/documents/admin_roles/$(request.auth.uid)).data.role : ''); }
     function moderator() { return role() in ['moderator','admin','superadmin']; }
     function admin() { return role() in ['admin','superadmin']; }
     function mine(uid) { return signedIn() && request.auth.uid == uid; }
@@ -66,7 +67,8 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/registrations/$(tid + '_' + request.auth.uid)).data.status == 'registered'
           && get(/databases/$(database)/documents/tournaments/$(tid)).data.status in ['upcoming','live']
           && request.time >= get(/databases/$(database)/documents/tournaments/$(tid)).data.startAt
-            - duration.value(get(/databases/$(database)/documents/settings/public).data.roomOpenMinutes is int
+            - duration.value(exists(/databases/$(database)/documents/settings/public)
+              && get(/databases/$(database)/documents/settings/public).data.roomOpenMinutes is int
               ? get(/databases/$(database)/documents/settings/public).data.roomOpenMinutes : 15, 'm'));
         allow create, update: if moderator() && request.resource.data.roomId is string
           && request.resource.data.roomId.size() <= 40 && request.resource.data.roomPass is string
