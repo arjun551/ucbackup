@@ -3,7 +3,7 @@ const {getAuth}=require('firebase-admin/auth');
 const ALLOWED=new Set([
  'ensurePlayerProfile','setupFirstAdmin','setRole','adminBlockUser','adminEditUser','adminMessageUser','adminDeleteUser','saveFcmToken',
  'adminUpsert','adminSetRoom','adminTournamentAction','joinTournament','getRoom','submitManualDeposit','claimDailyReward','createDeposit',
- 'adminReviewDeposit','requestWithdrawal','adminReviewWithdrawal','adminPublishResults','adminStats'
+ 'adminReviewDeposit','getManualDepositProof','requestWithdrawal','adminReviewWithdrawal','adminPublishResults','adminStats'
 ]);
 const STATUS={'unauthenticated':401,'permission-denied':403,'not-found':404,'already-exists':409,'failed-precondition':409,'invalid-argument':400,'resource-exhausted':429,'unavailable':503};
 module.exports=async function(req,res){
