@@ -7,7 +7,7 @@ service cloud.firestore {
     function admin() { return role() in ['admin', 'superadmin']; }
     function mine(uid) { return signedIn() && request.auth.uid == uid; }
 
-    // Wallets, payments, registrations and results are written ONLY by Cloud Functions.
+    // Wallets, payments, registrations and results are written ONLY by trusted Vercel API routes.
     match /users/{uid} {
       allow read: if mine(uid) || staff();
       allow update: if mine(uid)
