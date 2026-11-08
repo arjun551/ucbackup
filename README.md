@@ -1,121 +1,63 @@
-# UC ESPORTS TOURNAMENT — Full Version
+# UC ESPORTS TOURNAMENT — Website Edition (Firebase Spark + Vercel)
 
-This branch restores the full-featured UC Esports platform. The frontend is a static website deployed on Vercel; trusted wallet, payment, tournament, admin and scheduled operations run through Firebase Cloud Functions in `asia-south1`.
+This branch is the pure responsive website edition. Android, Capacitor, installable PWA and Firebase Cloud Functions deployment have been removed from the deployment path.
 
-## Included features
+## Architecture
+- Website: static HTML/CSS/JavaScript in `public/`, served by Vercel.
+- Identity and data: Firebase Authentication, Cloud Firestore and Cloud Storage on the Firebase Spark project.
+- Trusted server operations: Vercel Node.js API routes in `api/`, using Firebase Admin SDK.
+- Payments: Razorpay QR creation on the server and signature-verified webhook at `/api/razorpay-webhook`.
+- Source: GitHub branch `spark-vercel-website`.
 
-- Google player sign-in; optional email/password sign-in for admins.
-- Player profile: photo, mobile number, Free Fire/BGMI/Minecraft gamer IDs.
-- Solo, Duo and Squad registration with 1, 2 or 4 individual player tags.
-- Public joined-player roster; private Room ID/password returned only to registered players during the configured room-open window.
-- Daily rewards, streaks, XP, levels and leaderboard.
-- Wallet balances separated into deposit, winnings and non-withdrawable bonus credits.
-- Razorpay single-use UPI QR deposits with server-side QR creation, webhook signature verification, amount/currency matching and idempotent wallet credit.
-- Alternative manual UPI deposit with UTR and screenshot; admin verifies against the payment/bank record before approval.
-- Transaction history and withdrawal requests; winnings are reserved on request and refunded if rejected.
-- Admin dashboard, player edit/block/message/soft-delete, tournament management, room details, payments, withdrawals, results/prize distribution, promotions, announcements, settings and audit log.
-- YouTube live spectating links.
-- Firestore and Storage security rules; payment proof files are private to their owner and authorised staff.
+Wallet balances, tournament entry charges, withdrawals, room credentials, result publication and payment verification must only be mutated by server-side API routes. Do not grant clients direct write access to those records.
 
-## Architecture and plan requirement
+## Local setup (Windows)
+1. Install Node.js 22 LTS and Git.
+2. Clone and switch branch:
+   ```powershell
+   git clone https://github.com/arjun551/ucbackup.git
+   cd ucbackup
+   git checkout spark-vercel-website
+   npm install
+   ```
+3. Create a local `.env.local` file (never commit it). Add the environment variables below.
+4. Run `npm test`, then `npx vercel dev`.
+5. Open the local URL printed by Vercel CLI. Player site: `/`; admin: `/admin/`.
 
-This is the **full backend version**, not the Firebase Spark-only edition. Cloud Functions, Secret Manager and the scheduled function require a Firebase project on the **Blaze (pay-as-you-go) plan** with billing enabled. Vercel hosts the static frontend; it does not host or deploy the Firebase backend. Charges depend on actual usage and Google Cloud resources, so review the Firebase pricing/budget alerts before enabling production payments.
+## Required environment variables
+Set these in local `.env.local` and later in Vercel Project Settings → Environment Variables:
+- `FIREBASE_SERVICE_ACCOUNT_JSON`: complete JSON of a **newly generated, unrevoked** Firebase service-account key. Store it as one JSON string. Never paste it into source code, GitHub, or chat.
+- `FIREBASE_STORAGE_BUCKET`: `ucesportslast.firebasestorage.app`
+- `FIRST_ADMIN_EMAIL`: `ucwebdeveloper07@gmail.com`
+- `RZP_KEY_ID`: Razorpay Test Mode key ID while developing.
+- `RZP_KEY_SECRET`: Razorpay Test Mode secret.
+- `RZP_WEBHOOK_SECRET`: webhook secret configured in Razorpay and identical here.
+- `CRON_SECRET`: long random value for protected maintenance tasks if an external scheduler is configured.
 
-Do not deploy the Spark-only branch for this version.
+Do not reuse any previously exposed Firebase service-account private key. Revoke the exposed key in Google Cloud IAM and generate a new one. Never expose Razorpay secrets in browser JavaScript.
 
-## 1. Firebase setup
+## Firebase setup
+- Enable Google provider in Firebase Authentication.
+- Add `localhost` and the deployed website domain to Authorized domains.
+- Publish `firestore.rules` and `storage.rules` to the existing Firebase project.
+- The public Firebase Web config is in `public/firebase-config.js`; it is not a service-account credential.
+- First-admin setup requires the exact verified email in `FIRST_ADMIN_EMAIL`. Sign in with that account and use the setup control once.
 
-1. Open Firebase Console and select project `ucesportslast`.
-2. Authentication → Sign-in providers: enable **Google**. Enable **Email/Password** if you want admin email/password sign-in.
-3. Create Firestore in `asia-south1` and enable Firebase Storage.
-4. Confirm `public/firebase-config.js` matches the Firebase web app config.
-5. Upgrade the Firebase project to Blaze and attach a billing account before deploying Functions.
-6. In Authentication, create or sign in to the intended owner account and verify its email.
-7. Set the owner allowlist secret and payment secrets (the CLI prompts for each value; never paste secret values into source files):
+## Razorpay setup
+- Develop only with Razorpay Test Mode credentials.
+- Configure webhook URL as `https://YOUR_DOMAIN/api/razorpay-webhook`.
+- Subscribe to `qr_code.credited`.
+- Use the exact same webhook secret in `RZP_WEBHOOK_SECRET`.
+- Test success, duplicate, wrong-amount, expired and invalid-signature events before live credentials.
+- Live payments and real-money esports operations require Razorpay's explicit business-model approval and a hosting arrangement whose terms permit the commercial activity. Do not enable live keys until approval is confirmed.
 
-```bash
-firebase login
-firebase use ucesportslast
-firebase functions:secrets:set FIRST_ADMIN_EMAIL
-firebase functions:secrets:set RZP_KEY_ID
-firebase functions:secrets:set RZP_KEY_SECRET
-firebase functions:secrets:set RZP_WEBHOOK_SECRET
-```
+## Verification scope
+The project check validates repository structure and JavaScript syntax. It does not prove Firebase credentials, Google OAuth, Firestore deployment, Razorpay merchant approval, webhook delivery or live-money settlement. Those require local integration tests and provider-side configuration.
 
-For the first-admin secret, enter the exact email address of the verified owner account. For Razorpay, initially use **Test Mode** credentials and a test webhook secret.
+## Pages and features
+Player site: Google sign-in, profile and game IDs, tournaments, Solo/Duo/Squad registration, joined-player roster, gated room details, daily rewards, XP/levels, wallet, Razorpay QR deposits, manual UPI review, winnings withdrawal requests, transaction history and leaderboard.
 
-8. Install and deploy:
+Admin site: first-admin setup, staff roles, user moderation and soft-delete, tournament management, room credentials, deposits, withdrawals, result/prize publication, promotions, announcements, settings and audit log.
 
-```bash
-npm run build
-npm install --prefix functions
-firebase deploy --only firestore,storage,functions
-```
-
-9. Open `/admin/`, sign in with the verified owner account and click **Run first-time admin setup** once. This creates the super-admin role. After setup, sign out and sign in again if the role claim has not refreshed.
-10. In Firebase Authentication → Settings → Authorized domains, add the Vercel domain you will use.
-
-## 2. Razorpay QR and webhook
-
-The player Wallet page has two deposit paths:
-
-- **Razorpay:** player enters an amount and requests a single-use QR. The server creates the QR using the Razorpay API; the player scans it and pays. The wallet is credited only after the signed webhook is verified and the payment ID, INR currency and exact amount match the pending deposit.
-- **Manual UPI:** player scans the configured UPI QR, submits UTR and screenshot, and waits for admin approval. Admin must independently verify the payment in the bank/UPI statement before approving.
-
-In the Razorpay Dashboard (use Test Mode first), create a webhook with this URL:
-
-```
-https://asia-south1-ucesportslast.cloudfunctions.net/paymentWebhook
-```
-
-Subscribe to the **`qr_code.credited`** event. Set the webhook secret in Firebase using `firebase functions:secrets:set RZP_WEBHOOK_SECRET`; the entered value must match the secret configured in Razorpay. After switching to Live Mode, replace the key ID, key secret and webhook secret with the approved live credentials, then redeploy Functions.
-
-The Razorpay QR API must be enabled for your merchant account. Gateway approval for esports / entry-fee / prize-related flows is the merchant's responsibility; do not assume that a gateway account automatically permits every business model.
-
-## 3. Admin payment and withdrawal workflow
-
-- Razorpay QR deposits are automatically credited only after webhook verification. If a payment is delayed, mismatched or arrives after QR expiry, it is moved to review; an admin must inspect it in the Razorpay dashboard before taking action.
-- Manual UPI deposits remain in review until an admin matches the UTR and amount against the actual payment record.
-- Withdrawal requests reserve winnings from the available balance. Admin can move a request through Processing → Approved → Paid, or Reject it; rejection returns the reserved winnings to the wallet.
-- Never credit wallet balances by editing Firestore documents manually. All wallet changes must go through trusted Cloud Functions.
-
-## 4. Vercel deployment
-
-1. Import GitHub repository `arjun551/ucbackup` into Vercel.
-2. Select branch `full-version-razorpay` for the preview deployment.
-3. Configure:
-   - Framework Preset: **Other**
-   - Root Directory: `./`
-   - Build Command: `npm run build`
-   - Output Directory: `public`
-   - Node.js: **22.x**
-4. No Razorpay secrets or Firebase service-account credentials belong in Vercel frontend environment variables. They stay in Firebase Secret Manager.
-5. Deploy a Preview first. Test the site, then promote/merge only after backend checks pass. Firebase rules, Storage rules and Functions are deployed separately using the Firebase CLI.
-
-The checked-in `vercel.json` already contains the static build/output configuration.
-
-## 5. Local checks
-
-Use Node.js 22 and Firebase CLI:
-
-```bash
-npm run build
-node --check functions/index.js
-npm install --prefix functions
-firebase emulators:start --only auth,firestore,storage,functions
-```
-
-A successful syntax/build check does not prove that live Auth, Firestore rules, Storage permissions, Razorpay settlement or withdrawals work. Run end-to-end tests in a separate Firebase test project and Razorpay Test Mode before accepting real payments.
-
-## 6. Production safety checklist
-
-- Test Google login, first-admin setup, profile photo upload, gamer IDs and player registration.
-- Test Solo/Duo/Squad seat counts, room access timing and roster visibility.
-- Test daily reward duplicate prevention, XP/level progression and leaderboard updates.
-- Test Razorpay QR creation, valid webhook, invalid signature, duplicate webhook, amount mismatch and expired QR.
-- Test manual UTR proof, approval and rejection.
-- Test withdrawal reserve, approval, payout marking and rejection refund.
-- Test tournament cancellation/refunds, results publication and prize credit.
-- Verify that a normal player cannot read another player's wallet, deposits, withdrawals, transactions or payment proof.
-- Set billing budgets and alerts. Review legal, tax, age, consumer-protection and payment-provider requirements for real-money esports in India before launch.
-- Keep financial records. Soft-delete users rather than deleting financial history.
+## Important
+This branch does not deploy Firebase Cloud Functions. Website callable operations route through `/api/call`; the webhook routes through `/api/razorpay-webhook`. Keep Firebase rules restrictive. Never open wallet, deposit, withdrawal, private room or prize writes to clients.
