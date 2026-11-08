@@ -1,5 +1,5 @@
 const fs=require('fs'),vm=require('vm'),cp=require('child_process');
-const required=['firebase.json','firestore.rules','firestore.indexes.json','storage.rules','vercel.json','README.md','package.json','api/call.js','api/razorpay-webhook.js','lib/backend.js','public/index.html','public/admin/index.html','public/firebase-config.js'];
+const required=['firebase.json','firestore.rules','firestore.indexes.json','vercel.json','README.md','package.json','api/call.js','api/razorpay-webhook.js','lib/backend.js','public/index.html','public/admin/index.html','public/firebase-config.js'];
 const missing=required.filter(p=>!fs.existsSync(p));
 if(missing.length){console.error('Missing files:',missing.join(', '));process.exit(1)}
 const fb=JSON.parse(fs.readFileSync('firebase.json','utf8'));
