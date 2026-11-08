@@ -56,10 +56,10 @@ const loc=ms=>new Date(ms-new Date(ms).getTimezoneOffset()*6e4).toISOString().sl
 
 const GAMES=async()=>(((await db.doc('settings/public').get()).data()||{}).games||'Free Fire,BGMI,Minecraft').split(',').map(x=>x.trim()).filter(Boolean);
 function form(title,fields,init,submit){
- const inp=([k,l,t,o])=>{const v=init[k];return`<label>${l}${t==='select'?`<select name="${k}">${o.map(x=>`<option${v==x?' selected':''}>${esc(x)}</option>`).join('')}</select>`:t==='area'?`<textarea name="${k}" rows="4">${esc(v)}</textarea>`:t==='check'?`<input type="checkbox" name="${k}"${v?' checked':''}>`:t==='file'?`<input type="file" name="${k}" accept="image/*">${v?'<small>An image is already set. Choose a file only to replace it.</small>':''}`:`<input name="${k}" type="${t||'text'}" value="${esc(t==='datetime-local'&&v?loc(v):v)}">`}</label>`};
+ const inp=([k,l,t,o])=>{const v=init[k];return`<label>${l}${t==='select'?`<select name="${k}">${o.map(x=>`<option${v==x?' selected':''}>${esc(x)}</option>`).join('')}</select>`:t==='area'?`<textarea name="${k}" rows="4">${esc(v)}</textarea>`:t==='check'?`<input type="checkbox" name="${k}"${v?' checked':''}>`:`<input name="${k}" type="${t||'text'}" value="${esc(t==='datetime-local'&&v?loc(v):v)}">`}</label>`};
  $('#dlg').innerHTML=`<div class="ov"><form class="dl"><h3>${title}</h3>${fields.map(inp).join('')}<div class="rw"><button type="button" class="b g" data-x>Cancel</button><button class="b">Save</button></div></form></div>`;
  const f=$('#dlg form');f.onsubmit=async e=>{e.preventDefault();const d={};
-  for(const[k,,t]of fields){const el=f.elements[k];d[k]=t==='check'?el.checked:t==='file'?(el.files[0]?await up(el.files[0],k):init[k]):t==='datetime-local'?(el.value?new Date(el.value).getTime():''):el.value}
+  for(const[k,,t]of fields){const el=f.elements[k];d[k]=t==='check'?el.checked:t==='datetime-local'?(el.value?new Date(el.value).getTime():''):el.value}
   try{await submit(d);$('#dlg').innerHTML='';go()}catch(x){}}}
 async function view(id,u){const[w,t,r]=await Promise.all([db.doc('wallets/'+id).get(),db.collection('transactions').where('uid','==',id).limit(40).get(),db.collection('registrations').where('uid','==',id).limit(40).get()]),W=w.data()||{};
  const tx=t.docs.map(x=>x.data()).sort((a,b)=>((b.at&&b.at.seconds)||0)-((a.at&&a.at.seconds)||0));
