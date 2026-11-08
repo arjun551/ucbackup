@@ -5,6 +5,7 @@ const {getFirestore,FieldValue:FV,Timestamp:TS,AggregateField:AF}=require('fireb
 initializeApp();
 const db=getFirestore(),auth=getAuth(),msg=getMessaging(),bucket=getStorage().bucket(),fn=functions.region('asia-south1');
 const fnS=fn.runWith({secrets:['RZP_KEY_ID','RZP_KEY_SECRET','RZP_WEBHOOK_SECRET']});
+const fnA=fn.runWith({secrets:['FIRST_ADMIN_EMAIL']});
 const ROLE={moderator:1,admin:2,superadmin:3},ok={ok:true};
 const bad=(c,m)=>{throw new functions.https.HttpsError(c,m)};
 const who=c=>c.auth?c.auth.uid:bad('unauthenticated','Sign in first.');
@@ -39,7 +40,7 @@ exports.onUserCreate=functions.auth.user().onCreate(async u=>{
 exports.ensurePlayerProfile=fn.https.onCall(async(d,c)=>{const uid=who(c),u=await auth.getUser(uid),ur=db.doc('users/'+uid),wr=db.doc('wallets/'+uid);
  await db.runTransaction(async t=>{const [us,ws]=await t.getAll(ur,wr);if(!us.exists){const name=(u.displayName||(u.email||'player').split('@')[0]).replace(/[^\w ]/g,'').slice(0,24);t.set(ur,{username:name.length>=3?name:'Player_'+uid.slice(0,4),email:u.email||'',photoURL:u.photoURL||'',mobile:'',gameIds:{},notify:{match:true,room:true,pay:true},blocked:false,wins:0,joined:0,xp:0,level:1,title:'Rookie',dailyStreak:0,createdAt:FV.serverTimestamp(),lastSeen:FV.serverTimestamp()})}if(!ws.exists)t.set(wr,{deposit:0,winnings:0,bonus:0,earned:0,withdrawn:0})});return ok});
 
-exports.setupFirstAdmin=fn.https.onCall(async(d,c)=>{const uid=who(c),e=c.auth.token.email;
+exports.setupFirstAdmin=fnA.https.onCall(async(d,c)=>{const uid=who(c),e=c.auth.token.email;
  if(!process.env.FIRST_ADMIN_EMAIL||e!==process.env.FIRST_ADMIN_EMAIL||!c.auth.token.email_verified)bad('permission-denied','This account cannot run the setup.');
  await db.runTransaction(async t=>{const s=db.doc('settings/setup');if((await t.get(s)).exists)bad('already-exists','Setup was already completed.');
   t.set(s,{uid,at:FV.serverTimestamp()});t.set(db.doc('admin_roles/'+uid),{role:'superadmin',email:e,at:FV.serverTimestamp()});log(t,uid,'setupFirstAdmin')});
@@ -175,26 +176,53 @@ exports.claimDailyReward=fn.https.onCall(async(d,c)=>{const uid=who(c),today=ind
 
 exports.createDeposit=fnS.https.onCall(async(d,c)=>{const uid=who(c),amt=d.amount;
  if(!Number.isInteger(amt)||amt<10||amt>50000)bad('invalid-argument','Amount must be between Rs 10 and Rs 50,000.');
- const us=await db.doc('users/'+uid).get();if(!us.exists||us.data().blocked)bad('permission-denied','Your account cannot add money.');
+ const us=await db.doc('users/'+uid).get();if(!us.exists||us.data().blocked||us.data().deleted)bad('permission-denied','Your account cannot add money.');
  const ref=db.collection('deposits').doc(),exp=Date.now()+300000;
- // Gateway adapter (example: Razorpay UPI QR). Using another gateway? Change this call and paymentWebhook only.
- const r=await fetch('https://api.razorpay.com/v1/payments/qr_codes',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Basic '+Buffer.from(process.env.RZP_KEY_ID+':'+process.env.RZP_KEY_SECRET).toString('base64')},
-  body:JSON.stringify({type:'upi_qr',name:'UC ESPORTS',usage:'single_use',fixed_amount:true,payment_amount:amt*100,description:'Wallet top-up',close_by:Math.floor(exp/1000),notes:{depositId:ref.id}})});
- const q=await r.json().catch(()=>({}));if(!r.ok||!q.id||!q.image_url)bad('unavailable','The payment service is unavailable. Please try again.');
- await ref.set({uid,email:c.auth.token.email||'',amount:amt,status:'pending',gateway:'razorpay',qrId:q.id,qrImage:q.image_url,createdAt:FV.serverTimestamp(),expiresAt:TS.fromMillis(exp)});
- return{id:ref.id,qr:q.image_url,expiresAt:exp}});
+ // Create the pending record before exposing the QR to the player.
+ await ref.set({uid,email:c.auth.token.email||'',amount:amt,status:'creating',gateway:'razorpay',createdAt:FV.serverTimestamp(),expiresAt:TS.fromMillis(exp)});
+ try{
+  const r=await fetch('https://api.razorpay.com/v1/payments/qr_codes',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Basic '+Buffer.from(process.env.RZP_KEY_ID+':'+process.env.RZP_KEY_SECRET).toString('base64')},
+   body:JSON.stringify({type:'upi_qr',name:'UC ESPORTS',usage:'single_use',fixed_amount:true,payment_amount:amt*100,description:'UC Esports wallet top-up',close_by:Math.floor(exp/1000),notes:{depositId:ref.id,uid}})});
+  const q=await r.json().catch(()=>({}));
+  if(!r.ok||!q.id||!q.image_url)throw new Error('Razorpay could not create a payment QR.');
+  await ref.update({status:'pending',qrId:q.id,qrImage:q.image_url});
+  return{id:ref.id,qr:q.image_url,qrId:q.id,expiresAt:exp};
+ }catch(e){
+  await ref.update({status:'failed',failureReason:String(e.message||'Payment QR creation failed').slice(0,180)}).catch(()=>0);
+  console.error('Razorpay QR creation failed',e);
+  bad('unavailable','Razorpay could not create the QR right now. Please try again.');
+ }
+});
 
 exports.paymentWebhook=fnS.https.onRequest(async(req,res)=>{
- const sig=req.get('x-razorpay-signature')||'',h=crypto.createHmac('sha256',process.env.RZP_WEBHOOK_SECRET).update(req.rawBody).digest('hex');
- if(sig.length!==h.length||!crypto.timingSafeEqual(Buffer.from(sig),Buffer.from(h)))return res.status(401).send('bad signature');
- const ev=req.body;if(ev.event!=='qr_code.credited')return res.send('ignored');
- const pay=ev.payload.payment.entity,qr=ev.payload.qr_code.entity,q=await db.collection('deposits').where('qrId','==',qr.id).limit(1).get();
- if(q.empty)return res.send('unknown');
- await db.runTransaction(async t=>{const seen=db.doc('payments_seen/'+pay.id),[ds,sn]=await t.getAll(q.docs[0].ref,seen);if(sn.exists)return;const D=ds.data();
-  t.set(seen,{deposit:ds.id,at:FV.serverTimestamp()});
-  if(D.status==='pending'&&pay.status==='captured'&&pay.amount===D.amount*100)creditDeposit(t,ds,pay.id);
-  else if(D.status==='pending'||D.status==='expired')t.update(ds.ref,{status:'review',paymentId:pay.id,paidAmount:pay.amount/100})});
- res.send('ok')});
+ if(req.method!=='POST')return res.status(405).send('method not allowed');
+ const sig=req.get('x-razorpay-signature')||'',raw=req.rawBody||Buffer.from('');
+ const h=crypto.createHmac('sha256',process.env.RZP_WEBHOOK_SECRET).update(raw).digest('hex');
+ if(!sig||sig.length!==h.length||!crypto.timingSafeEqual(Buffer.from(sig),Buffer.from(h)))return res.status(401).send('bad signature');
+ try{
+  const ev=req.body||{};
+  if(ev.event!=='qr_code.credited')return res.status(200).send('ignored');
+  const pay=ev.payload?.payment?.entity,qr=ev.payload?.qr_code?.entity;
+  if(!pay?.id||!qr?.id)return res.status(400).send('invalid event payload');
+  const q=await db.collection('deposits').where('qrId','==',qr.id).limit(1).get();
+  if(q.empty)return res.status(200).send('unknown QR');
+  await db.runTransaction(async t=>{
+   const seen=db.doc('payments_seen/'+pay.id),[ds,sn]=await t.getAll(q.docs[0].ref,seen);
+   if(sn.exists)return;
+   const D=ds.data();
+   t.create(seen,{deposit:ds.id,at:FV.serverTimestamp()});
+   if(D.status==='pending'&&pay.status==='captured'&&pay.amount===D.amount*100&&pay.currency==='INR'){
+    creditDeposit(t,ds,pay.id);
+   }else if(['pending','expired'].includes(D.status)){
+    t.update(ds.ref,{status:'review',paymentId:pay.id,paidAmount:Number(pay.amount||0)/100,paymentCurrency:pay.currency||''});
+   }
+  });
+  return res.status(200).send('ok');
+ }catch(e){
+  console.error('Razorpay webhook processing failed',e);
+  return res.status(500).send('webhook processing failed');
+ }
+});
 
 exports.adminReviewDeposit=fn.https.onCall(async(d,c)=>{const me=staff(c,'admin'),id=String(d.id||'');
  await db.runTransaction(async t=>{const ds=await t.get(db.doc('deposits/'+id));if(!ds.exists)bad('not-found','Deposit not found.');const D=ds.data();
@@ -231,7 +259,7 @@ exports.adminReviewWithdrawal=fn.https.onCall(async(d,c)=>{const me=staff(c,'adm
 exports.adminPublishResults=fn.runWith({timeoutSeconds:300}).https.onCall(async(d,c)=>{
  const me=staff(c,'admin'),id=String(d.tid||''),W=Array.isArray(d.winners)?d.winners:[];
  if(!W.length||W.length>50)bad('invalid-argument','Add between 1 and 50 winners.');
- const seen=new Set();for(const w of W){if(typeof w.uid!=='string'||seen.has(w.uid)||!Number.isInteger(w.rank)||w.rank<1||!Number.isInteger(w.prize)||w.prize<0)bad('invalid-argument','Each winner needs a unique player, a whole-number rank and a whole-number prize.');seen.add(w.uid)}
+ const seen=new Set(),ranks=new Set();for(const w of W){if(typeof w.uid!=='string'||seen.has(w.uid)||!Number.isInteger(w.rank)||w.rank<1||ranks.has(w.rank)||!Number.isInteger(w.prize)||w.prize<0)bad('invalid-argument','Each winner needs a unique player, a unique whole-number rank and a whole-number prize.');seen.add(w.uid);ranks.add(w.rank)}
  await db.runTransaction(async t=>{const tr=db.doc('tournaments/'+id),ts=await t.get(tr);if(!ts.exists)bad('not-found','Tournament not found.');const T=ts.data();
   if(!['live','completed'].includes(T.status)||T.resultsPublished)bad('failed-precondition','Results cannot be published for this tournament.');
   const total=W.reduce((a,w)=>a+w.prize,0);if(total>(T.prize||0))bad('failed-precondition','Prizes add up to more than the prize pool.');
