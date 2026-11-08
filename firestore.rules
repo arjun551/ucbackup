@@ -32,7 +32,11 @@ service cloud.firestore {
         && request.resource.data.lastDailyClaimAt == request.time
         && (!('lastDailyClaimAt' in resource.data) || resource.data.lastDailyClaimAt < request.time - duration.value(24,'h'))
         && request.resource.data.dailyStreak >= 1 && request.resource.data.dailyStreak <= 7
-      ) || (moderator() && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+      ) || (mine(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['xp','level','title','joined','lastJoinId'])
+        && request.resource.data.xp == resource.data.xp + 50
+        && request.resource.data.joined == resource.data.joined + 1
+        && request.resource.data.lastJoinId is string
+        && existsAfter(/databases/$(database)/documents/registrations/$(request.resource.data.lastJoinId))) || (admin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
         'username','photoURL','gameIds','mobile','blocked','deleted','deletedAt','xp','level','title','wins','joined'
       ]));
       allow delete: if false;
@@ -40,7 +44,12 @@ service cloud.firestore {
     match /wallets/{uid} { allow read: if mine(uid) || moderator(); allow write: if false; }
     match /tournaments/{tid} {
       allow read: if true;
-      allow create, update, delete: if moderator();
+      allow create, delete: if moderator();
+      allow update: if moderator() || (signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['joined','playerCount'])
+        && request.resource.data.joined == resource.data.joined + 1
+        && request.resource.data.playerCount == resource.data.playerCount + request.resource.data.playerCount - resource.data.playerCount
+        && getAfter(/databases/$(database)/documents/registrations/$(tid + '_' + request.auth.uid)).data.status == 'registered');
       match /private/room {
         allow read: if moderator() || (signedIn() && registrationExists(tid,request.auth.uid)
           && get(/databases/$(database)/documents/registrations/$(tid + '_' + request.auth.uid)).data.status == 'registered');
@@ -96,7 +105,7 @@ service cloud.firestore {
     match /results/{id} { allow read: if true; allow write: if admin(); }
     match /announcements/{id} { allow read: if resource.data.enabled == true || moderator(); allow create, update, delete: if moderator(); }
     match /promotions/{id} { allow read: if resource.data.enabled == true || admin(); allow create, update, delete: if admin(); }
-    match /admin_roles/{id} { allow read: if owner() || moderator(); allow create, update, delete: if owner(); }
+    match /admin_roles/{id} { allow read: if mine(id) || owner() || moderator(); allow create, update, delete: if owner(); }
     match /audit_logs/{id} { allow read: if admin(); allow create: if moderator() && request.resource.data.uid == request.auth.uid; allow update, delete: if false; }
     match /settings/{id} { allow read: if id == 'public' || admin(); allow create, update, delete: if admin(); }
     match /payments_seen/{id} { allow read, write: if false; }
