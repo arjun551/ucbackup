@@ -2,41 +2,104 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
-    function role() { return signedIn() && ('role' in request.auth.token) ? request.auth.token.role : ''; }
-    function staff() { return role() in ['moderator', 'admin', 'superadmin']; }
-    function admin() { return role() in ['admin', 'superadmin']; }
+    function owner() { return signedIn() && request.auth.token.email == 'ucwebdeveloper07@gmail.com' && request.auth.token.email_verified == true; }
+    function roleDoc() { return signedIn() ? get(/databases/$(database)/documents/admin_roles/$(request.auth.uid)) : null; }
+    function role() { return owner() ? 'superadmin' : (roleDoc() != null && roleDoc().data.role is string ? roleDoc().data.role : ''); }
+    function moderator() { return role() in ['moderator','admin','superadmin']; }
+    function admin() { return role() in ['admin','superadmin']; }
     function mine(uid) { return signedIn() && request.auth.uid == uid; }
-
-    // Wallets, payments, registrations and results are written ONLY by Cloud Functions.
+    function registrationExists(tid, uid) { return exists(/databases/$(database)/documents/registrations/$(tid + '_' + uid)); }
+    function validProfile(data) {
+      return data.username is string && data.username.size() >= 3 && data.username.size() <= 24
+        && data.mobile is string && data.mobile.size() <= 18
+        && data.photoURL is string && data.photoURL.size() <= 1500 && data.gameIds is map;
+    }
     match /users/{uid} {
-      allow read: if mine(uid) || staff();
-      allow update: if mine(uid)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['username', 'photoURL', 'gameIds', 'notify', 'lastSeen', 'mobile'])
-        && request.resource.data.username is string
-        && request.resource.data.username.size() >= 3
-        && request.resource.data.username.size() <= 24
-        && (!('mobile' in request.resource.data) || request.resource.data.mobile is string && request.resource.data.mobile.size() <= 18);
+      allow read: if mine(uid) || moderator();
+      allow create: if mine(uid) && request.resource.data.uid == uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.xp == 0 && request.resource.data.level == 1
+        && request.resource.data.wins == 0 && request.resource.data.joined == 0
+        && request.resource.data.blocked == false && request.resource.data.deleted == false
+        && validProfile(request.resource.data);
+      allow update: if (
+        mine(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['username','photoURL','gameIds','notify','lastSeen','mobile'])
+        && validProfile(request.resource.data)
+      ) || (
+        mine(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['xp','level','title','dailyStreak','lastDailyClaimAt'])
+        && request.resource.data.xp is int && request.resource.data.xp >= resource.data.xp + 20
+        && request.resource.data.xp <= resource.data.xp + 50
+        && request.resource.data.lastDailyClaimAt == request.time
+        && (!('lastDailyClaimAt' in resource.data) || resource.data.lastDailyClaimAt < request.time - duration.value(24,'h'))
+        && request.resource.data.dailyStreak >= 1 && request.resource.data.dailyStreak <= 7
+      ) || (moderator() && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'username','photoURL','gameIds','mobile','blocked','deleted','deletedAt','xp','level','title','wins','joined'
+      ]));
+      allow delete: if false;
     }
-    match /wallets/{uid} { allow read: if mine(uid) || staff(); }
-    match /tournaments/{id} {
+    match /wallets/{uid} { allow read: if mine(uid) || moderator(); allow write: if false; }
+    match /tournaments/{tid} {
       allow read: if true;
-      match /private/{doc} { allow read, write: if false; }  // room ID and password: served by getRoom only
+      allow create, update, delete: if moderator();
+      match /private/room {
+        allow read: if moderator() || (signedIn() && registrationExists(tid,request.auth.uid)
+          && get(/databases/$(database)/documents/registrations/$(tid + '_' + request.auth.uid)).data.status == 'registered');
+        allow create, update: if moderator() && request.resource.data.roomId is string
+          && request.resource.data.roomId.size() <= 40 && request.resource.data.roomPass is string
+          && request.resource.data.roomPass.size() <= 40;
+        allow delete: if moderator();
+      }
+      match /private/{other} { allow read, write: if false; }
     }
-    match /registrations/{id} { allow read: if mine(resource.data.uid) || staff(); }
-    match /tournament_rosters/{tid}/teams/{uid} { allow read: if true; }
-    match /transactions/{id} { allow read: if mine(resource.data.uid) || staff(); }
-    match /deposits/{id} { allow read: if mine(resource.data.uid) || staff(); }
-    match /withdrawals/{id} { allow read: if mine(resource.data.uid) || staff(); }
+    match /registrations/{id} {
+      allow read: if mine(resource.data.uid) || moderator();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.tid is string && id == request.resource.data.tid + '_' + request.auth.uid
+        && request.resource.data.status == 'registered' && request.resource.data.fee == 0
+        && request.resource.data.members is list && request.resource.data.seatCount in [1,2,4]
+        && request.resource.data.members.size() == request.resource.data.seatCount
+        && get(/databases/$(database)/documents/tournaments/$(request.resource.data.tid)).data.status == 'upcoming'
+        && get(/databases/$(database)/documents/tournaments/$(request.resource.data.tid)).data.startAt > request.time
+        && getAfter(/databases/$(database)/documents/tournaments/$(request.resource.data.tid)).data.joined
+          == get(/databases/$(database)/documents/tournaments/$(request.resource.data.tid)).data.joined + 1
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.xp
+          == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.xp + 50;
+      allow update, delete: if moderator();
+    }
+    match /tournament_rosters/{tid}/teams/{uid} {
+      allow read: if true;
+      allow create: if mine(uid) && registrationExists(tid,uid)
+        && getAfter(/databases/$(database)/documents/registrations/$(tid + '_' + uid)).data.status == 'registered'
+        && request.resource.data.uid == uid && request.resource.data.status == 'registered';
+      allow update, delete: if moderator();
+    }
+    match /transactions/{id} { allow read: if mine(resource.data.uid) || moderator(); allow write: if false; }
+    match /deposits/{id} { allow read: if mine(resource.data.uid) || admin(); allow write: if false; }
+    match /withdrawals/{id} { allow read: if mine(resource.data.uid) || admin(); allow write: if false; }
     match /notifications/{id} {
-      allow read: if mine(resource.data.uid);
-      allow update: if mine(resource.data.uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow read: if mine(resource.data.uid) || moderator();
+      allow create: if (mine(request.resource.data.uid) && request.resource.data.keys().hasOnly(['uid','title','body','read','at'])
+        && request.resource.data.title is string && request.resource.data.title.size() <= 80
+        && request.resource.data.body is string && request.resource.data.body.size() <= 1000
+        && request.resource.data.read == false) || (moderator() && request.resource.data.uid is string);
+      allow update: if mine(resource.data.uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read is bool;
+      allow delete: if admin();
     }
-    match /leaderboards/{id} { allow read: if true; }
-    match /results/{id} { allow read: if true; }
-    match /announcements/{id} { allow read: if resource.data.enabled == true || staff(); }
-    match /promotions/{id} { allow read: if resource.data.enabled == true || staff(); }
-    match /admin_roles/{id} { allow read: if admin(); }
-    match /audit_logs/{id} { allow read: if admin(); }
-    match /settings/{id} { allow read: if id == 'public' || staff(); }
+    match /leaderboards/{uid} {
+      allow read: if true;
+      allow create, update: if (mine(uid) && request.resource.data.uid == uid
+        && request.resource.data.xp == get(/databases/$(database)/documents/users/$(uid)).data.xp
+        && request.resource.data.wins == get(/databases/$(database)/documents/users/$(uid)).data.wins) || moderator();
+      allow delete: if admin();
+    }
+    match /results/{id} { allow read: if true; allow write: if admin(); }
+    match /announcements/{id} { allow read: if resource.data.enabled == true || moderator(); allow create, update, delete: if moderator(); }
+    match /promotions/{id} { allow read: if resource.data.enabled == true || admin(); allow create, update, delete: if admin(); }
+    match /admin_roles/{id} { allow read: if owner() || moderator(); allow create, update, delete: if owner(); }
+    match /audit_logs/{id} { allow read: if admin(); allow create: if moderator() && request.resource.data.uid == request.auth.uid; allow update, delete: if false; }
+    match /settings/{id} { allow read: if id == 'public' || admin(); allow create, update, delete: if admin(); }
+    match /payments_seen/{id} { allow read, write: if false; }
+    match /{document=**} { allow read, write: if false; }
   }
 }
