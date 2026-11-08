@@ -1,0 +1,8 @@
+{
+  "appId": "online.ucesportstornament.app",
+  "appName": "UC ESPORTS TOURNAMENT",
+  "webDir": "public",
+  "server": {
+    "androidScheme": "https"
+  }
+}

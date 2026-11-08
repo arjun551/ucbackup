@@ -1,0 +1,13 @@
+{
+  "hosting": {
+    "public": "public",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "headers": [
+      {"source": "/admin/**", "headers": [{"key": "X-Frame-Options", "value": "DENY"}, {"key": "X-Robots-Tag", "value": "noindex"}]},
+      {"source": "/sw.js", "headers": [{"key": "Cache-Control", "value": "no-cache"}]}
+    ]
+  },
+  "firestore": {"rules": "firestore.rules", "indexes": "firestore.indexes.json"},
+  "storage": {"rules": "storage.rules"},
+  "functions": [{"source": "functions", "codebase": "default"}]
+}

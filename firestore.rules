@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function role() { return signedIn() && ('role' in request.auth.token) ? request.auth.token.role : ''; }
+    function staff() { return role() in ['moderator', 'admin', 'superadmin']; }
+    function admin() { return role() in ['admin', 'superadmin']; }
+    function mine(uid) { return signedIn() && request.auth.uid == uid; }
+
+    // Wallets, payments, registrations and results are written ONLY by Cloud Functions.
+    match /users/{uid} {
+      allow read: if mine(uid) || staff();
+      allow update: if mine(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['username', 'photoURL', 'gameIds', 'notify', 'lastSeen', 'mobile'])
+        && request.resource.data.username is string
+        && request.resource.data.username.size() >= 3
+        && request.resource.data.username.size() <= 24
+        && (!('mobile' in request.resource.data) || request.resource.data.mobile is string && request.resource.data.mobile.size() <= 18);
+    }
+    match /wallets/{uid} { allow read: if mine(uid) || staff(); }
+    match /tournaments/{id} {
+      allow read: if true;
+      match /private/{doc} { allow read, write: if false; }  // room ID and password: served by getRoom only
+    }
+    match /registrations/{id} { allow read: if mine(resource.data.uid) || staff(); }
+    match /tournament_rosters/{tid}/teams/{uid} { allow read: if true; }
+    match /transactions/{id} { allow read: if mine(resource.data.uid) || staff(); }
+    match /deposits/{id} { allow read: if mine(resource.data.uid) || staff(); }
+    match /withdrawals/{id} { allow read: if mine(resource.data.uid) || staff(); }
+    match /notifications/{id} {
+      allow read: if mine(resource.data.uid);
+      allow update: if mine(resource.data.uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+    }
+    match /leaderboards/{id} { allow read: if true; }
+    match /results/{id} { allow read: if true; }
+    match /announcements/{id} { allow read: if resource.data.enabled == true || staff(); }
+    match /promotions/{id} { allow read: if resource.data.enabled == true || staff(); }
+    match /admin_roles/{id} { allow read: if admin(); }
+    match /audit_logs/{id} { allow read: if admin(); }
+    match /settings/{id} { allow read: if id == 'public' || staff(); }
+  }
+}
