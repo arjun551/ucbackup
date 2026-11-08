@@ -249,14 +249,12 @@ async function commitVerifiedPayment(env, depositId, payment, deposit, status) {
         : ["status", "paymentId", "paidAmount", "paymentCurrency"] },
       currentDocument: { exists: true }
     },
-    {
+    ...(status === "success" ? [{
       transform: {
         document: walletName,
-        fieldTransforms: status === "success"
-          ? [{ fieldPath: "deposit", increment: { integerValue: String(deposit.amount) } }]
-          : []
+        fieldTransforms: [{ fieldPath: "deposit", increment: { integerValue: String(deposit.amount) } }]
       }
-    },
+    }] : []),
     {
       update: { name: seenName, fields: fields({ deposit: depositId, at: { __timestamp: now } }) },
       currentDocument: { exists: false }
