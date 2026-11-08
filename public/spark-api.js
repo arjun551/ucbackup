@@ -353,7 +353,7 @@
         resultRows.length = 0;
         const refs = [tr];
         winners.forEach(w => refs.push(registrationRef(id, w.uid), userRef(w.uid)));
-        const snaps = await tx.getAll(...refs);
+        const snaps = await Promise.all(refs.map(ref => tx.get(ref)));
         const ts = snaps[0];
         if (!ts.exists) fail('Tournament not found.');
         const tour = ts.data();
