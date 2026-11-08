@@ -63,7 +63,11 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/registrations/$(tid + '_' + request.auth.uid)).data.status == 'registered');
       match /private/room {
         allow read: if moderator() || (signedIn() && registrationExists(tid,request.auth.uid)
-          && get(/databases/$(database)/documents/registrations/$(tid + '_' + request.auth.uid)).data.status == 'registered');
+          && get(/databases/$(database)/documents/registrations/$(tid + '_' + request.auth.uid)).data.status == 'registered'
+          && get(/databases/$(database)/documents/tournaments/$(tid)).data.status in ['upcoming','live']
+          && request.time >= get(/databases/$(database)/documents/tournaments/$(tid)).data.startAt
+            - duration.value(get(/databases/$(database)/documents/settings/public).data.roomOpenMinutes is int
+              ? get(/databases/$(database)/documents/settings/public).data.roomOpenMinutes : 15, 'm'));
         allow create, update: if moderator() && request.resource.data.roomId is string
           && request.resource.data.roomId.size() <= 40 && request.resource.data.roomPass is string
           && request.resource.data.roomPass.size() <= 40;
