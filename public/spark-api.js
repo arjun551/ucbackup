@@ -348,8 +348,9 @@
         seen.add(w.uid);
       });
       const tr = tournamentRef(id);
-      const resultRows = winners.map(w => ({ uid: w.uid, rank: w.rank, prize: w.prize }));
+      const resultRows = [];
       await db.runTransaction(async tx => {
+        resultRows.length = 0;
         const refs = [tr];
         winners.forEach(w => refs.push(registrationRef(id, w.uid), userRef(w.uid)));
         const snaps = await tx.getAll(...refs);
@@ -363,6 +364,7 @@
           if (!reg.exists || reg.data().status !== 'registered' || reg.data().resultPublished) fail('A selected winner is not an eligible registered player.');
           if (!us.exists) fail('A selected player profile is missing.');
           const user = us.data(), xp = Number(user.xp || 0) + 200 + w.prize;
+          resultRows.push({ uid: w.uid, username: clean(user.username || 'Player', 24), rank: w.rank, prize: w.prize });
           const wins = Number(user.wins || 0) + (w.rank === 1 ? 1 : 0);
           const level = levelFor(xp);
           tx.update(userRef(w.uid), { xp: xp, wins: wins, level: level, title: titleFor(level) });
