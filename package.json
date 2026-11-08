@@ -1,16 +1,16 @@
 {
   "name": "uc-esports-tournament",
   "private": true,
-  "version": "2.0.0",
+  "version": "3.0.0",
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22"
   },
   "scripts": {
     "build": "node scripts/check-project.js",
-    "deploy": "firebase deploy",
-    "deploy:hosting": "firebase deploy --only hosting",
-    "deploy:functions": "firebase deploy --only functions",
-    "deploy:rules": "firebase deploy --only firestore:rules,storage",
-    "emulators": "firebase emulators:start"
+    "test": "node scripts/check-project.js",
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.2"
   }
 }
