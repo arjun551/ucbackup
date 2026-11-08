@@ -413,7 +413,7 @@
         const current = await tx.get(tr);
         if (!current.exists || current.data().resultsPublished) fail('Results were already published.');
         tx.set(db.doc('results/' + id), {
-          tid: id, title: clean(tour.title, 100), game: clean(tour.game, 40),
+          tid: id, title: clean(tour.title, 100), game: clean(tour.game, 40), rewardType: 'xp',
           winners: resultRows, at: F().serverTimestamp()
         });
         tx.update(tr, { status: 'completed', resultsPublished: true });
