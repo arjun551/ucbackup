@@ -3,113 +3,154 @@
 <title>UC ESPORTS Admin</title>
 <style>
 :root{--bg:#070b1a;--s:#0e1430;--bd:#262f66;--tx:#eef1ff;--mu:#98a2cf;--er:#ff4d6d;--gr:linear-gradient(90deg,#2f7bff,#8b3dff,#ff2e9a);color-scheme:dark}
-*{box-sizing:border-box;margin:0}[hidden]{display:none!important}
-body{background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-h2{margin:18px 0 10px}h3{margin-bottom:10px}h4{margin:14px 0 6px}
-.mu,small{color:var(--mu)}.er{color:var(--er)}.gt{background:var(--gr);-webkit-background-clip:text;background-clip:text;color:transparent}
-#app{display:flex;min-height:100vh}
-#nav{width:210px;flex:none;background:var(--s);border-right:1px solid var(--bd);padding:14px;display:flex;flex-direction:column;gap:8px}
+*{box-sizing:border-box;margin:0}[hidden]{display:none!important}body{background:var(--bg);color:var(--tx);font:14px/1.45 Inter,system-ui,sans-serif}
+h2{margin:18px 0 10px}h3{margin-bottom:10px}.mu,small{color:var(--mu)}.er{color:var(--er)}.gt{background:var(--gr);-webkit-background-clip:text;background-clip:text;color:transparent}
+#app{display:flex;min-height:100vh}#nav{width:220px;flex:none;background:var(--s);border-right:1px solid var(--bd);padding:14px;display:flex;flex-direction:column;gap:8px}
 .logo{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:700;margin-bottom:6px}.logo img{width:36px;height:36px;border-radius:8px}
-.tabs{display:flex;flex-direction:column;gap:4px;flex:1}
-.tabs button{background:none;border:0;color:var(--mu);text-align:left;padding:9px 10px;border-radius:10px;cursor:pointer;font:inherit}
-.tabs button.on{background:#1b2458;color:#fff}
-main{flex:1;min-width:0;padding:6px 18px 40px}
-@media(max-width:760px){#app{flex-direction:column}#nav{width:auto;flex-direction:row;align-items:center;overflow-x:auto}.tabs{flex-direction:row;flex:none}.tabs button{white-space:nowrap}.logo span{display:none}}
-.b{background:var(--gr);border:0;color:#fff;border-radius:999px;padding:7px 14px;cursor:pointer;font:600 13px system-ui}
-.b.g{background:transparent;border:1px solid var(--bd)}.b.r{background:#c2284a}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
-.c{background:var(--s);border:1px solid var(--bd);border-radius:14px;padding:12px}.c b{display:block;font-size:24px}
-.tw{overflow-x:auto;margin-top:10px}table{border-collapse:collapse;width:100%}
-th,td{padding:8px 10px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap}th{color:var(--mu);font-weight:600}td .b{margin:2px 2px 2px 0}
-input,select,textarea{width:100%;background:#0a0f26;border:1px solid var(--bd);border-radius:10px;padding:9px;color:inherit;font:inherit;margin:4px 0 10px}
-input[type=checkbox]{width:auto;margin-left:8px}label{display:block;color:var(--mu);font-size:12px}
-.ov{position:fixed;inset:0;background:rgba(2,4,14,.78);display:grid;place-items:center;z-index:9;padding:12px}
-.dl{background:var(--s);border:1px solid var(--bd);border-radius:16px;padding:16px;width:min(560px,100%);max-height:92vh;overflow:auto}
-.rw{display:flex;justify-content:space-between;gap:8px;margin-top:6px}
-#login{min-height:100vh;display:grid;place-items:center;padding:14px}#login .dl{width:min(380px,100%)}
-</style></head>
-<body>
-<div id="login"><form class="dl" id="lf"><h2 class="gt" style="margin-top:0">UC ESPORTS Admin</h2>
-<label>Email<input name="e" type="email" required></label><label>Password<input name="p" type="password" required></label>
-<div class="rw"><button class="b">Sign in</button><button type="button" class="b g" id="gg">Sign in with Google</button></div>
-<p id="msg" class="er" style="margin-top:10px"></p>
-<div class="rw"><button type="button" class="b" id="su" hidden>Run first-time admin setup</button><button type="button" class="b g" id="so" hidden>Sign out</button></div></form></div>
-<div id="app" hidden><div id="nav"><div class="logo"><img src="../icons/icon-192.png" alt=""><span>UC ESPORTS</span></div><div class="tabs"></div><button class="b g" id="out">Sign out</button></div><main id="main"></main></div>
-<div id="dlg"></div>
+.tabs{display:flex;flex-direction:column;gap:4px;flex:1}.tabs button{background:none;border:0;color:var(--mu);text-align:left;padding:9px 10px;border-radius:10px;cursor:pointer;font:inherit}.tabs button.on{background:#1b2458;color:#fff}
+main{flex:1;min-width:0;padding:6px 18px 40px}@media(max-width:760px){#app{flex-direction:column}#nav{width:auto;flex-direction:row;align-items:center;overflow-x:auto}.tabs{flex-direction:row;flex:none}.tabs button{white-space:nowrap}.logo span{display:none}}
+.b{background:var(--gr);border:0;color:#fff;border-radius:999px;padding:7px 14px;cursor:pointer;font:600 13px system-ui}.b.g{background:transparent;border:1px solid var(--bd)}.b.r{background:#c2284a}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}.c{background:var(--s);border:1px solid var(--bd);border-radius:14px;padding:12px}.c b{display:block;font-size:24px}
+.tw{overflow-x:auto;margin-top:10px}table{border-collapse:collapse;width:100%}th,td{padding:8px 10px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap}th{color:var(--mu);font-weight:600}td .b{margin:2px}
+input,select,textarea{width:100%;background:#0a0f26;border:1px solid var(--bd);border-radius:10px;padding:9px;color:inherit;font:inherit;margin:4px 0 10px}input[type=checkbox]{width:auto;margin-left:8px}label{display:block;color:var(--mu);font-size:12px}
+.ov{position:fixed;inset:0;background:rgba(2,4,14,.78);display:grid;place-items:center;z-index:9;padding:12px}.dl{background:var(--s);border:1px solid var(--bd);border-radius:16px;padding:16px;width:min(600px,100%);max-height:92vh;overflow:auto}
+.rw{display:flex;justify-content:space-between;gap:8px;margin-top:6px;flex-wrap:wrap}#login{min-height:100vh;display:grid;place-items:center;padding:14px}#login .dl{width:min(390px,100%)}.notice{background:#18264b;border:1px solid var(--bd);border-radius:12px;padding:12px;margin:10px 0}
+</style></head><body>
+<div id="login"><form class="dl" id="lf"><h2 class="gt">UC ESPORTS Admin</h2><p class="mu">Sign in with your authorised Google or email account.</p>
+<label>Email<input name="e" type="email" required></label><label>Password<input name="p" type="password"></label>
+<div class="rw"><button class="b">Sign in with email</button><button type="button" class="b g" id="gg">Google sign in</button></div><p id="msg" class="er" style="margin-top:10px"></p></form></div>
+<div id="app" hidden><div id="nav"><div class="logo"><img src="../icons/icon-192.png" alt=""><span>UC ESPORTS</span></div><div class="tabs"></div><button class="b g" id="out">Sign out</button></div><main id="main"></main></div><div id="dlg"></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-functions-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
-<script src="../firebase-config.js"></script>
-<script>
-if(!window.FIREBASE_CONFIG||FIREBASE_CONFIG.apiKey==='YOUR_API_KEY'){document.body.innerHTML='<p style="padding:20px">Add your Firebase web app settings to <b>public/firebase-config.js</b> first.</p>';throw new Error('Missing Firebase config')}
+<script src="../firebase-config.js"></script><script src="../spark-api.js"></script><script>
+if(!window.FIREBASE_CONFIG||FIREBASE_CONFIG.apiKey==='YOUR_API_KEY'){document.body.innerHTML='<p style="padding:20px">Add Firebase settings to public/firebase-config.js.</p>';throw new Error('Missing Firebase config')}
 firebase.initializeApp(FIREBASE_CONFIG);
-const auth=firebase.auth(),db=firebase.firestore(),fns=firebase.app().functions('asia-south1'),st=firebase.storage();
-const $=s=>document.querySelector(s),esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
-const RANK={moderator:1,admin:2,superadmin:3},A=[];let role='',tab='dash';
-const call=async(n,d)=>{try{return(await fns.httpsCallable(n)(d||{})).data}catch(e){alert(e.message);throw e}};
-const when=t=>t&&t.toDate?t.toDate().toLocaleString('en-IN'):'',inr=n=>'₹'+Number(n||0).toLocaleString('en-IN');
-const tbl=(h,r)=>`<div class="tw"><table><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr>${r.map(x=>`<tr>${x.map(y=>`<td>${y}</td>`).join('')}</tr>`).join('')||`<tr><td colspan="${h.length}">Nothing here yet.</td></tr>`}</table></div>`;
-const btn=(l,f,c='')=>{A.push(f);return`<button class="b ${c}" data-i="${A.length-1}">${l}</button>`};
-const loc=ms=>new Date(ms-new Date(ms).getTimezoneOffset()*6e4).toISOString().slice(0,16);
-const up=async(f,k)=>{const r=st.ref((k==='poster'?'posters/':'promos/')+Date.now()+'_'+f.name.replace(/[^\w.]/g,'_'));await r.put(f);return r.getDownloadURL()};
-const GAMES=async()=>(((await db.doc('settings/public').get()).data()||{}).games||'Free Fire,BGMI,Minecraft').split(',').map(x=>x.trim()).filter(Boolean);
-function form(title,fields,init,submit){
- const inp=([k,l,t,o])=>{const v=init[k];return`<label>${l}${t==='select'?`<select name="${k}">${o.map(x=>`<option${v==x?' selected':''}>${esc(x)}</option>`).join('')}</select>`:t==='area'?`<textarea name="${k}" rows="4">${esc(v)}</textarea>`:t==='check'?`<input type="checkbox" name="${k}"${v?' checked':''}>`:t==='file'?`<input type="file" name="${k}" accept="image/*">${v?'<small>An image is already set. Choose a file only to replace it.</small>':''}`:`<input name="${k}" type="${t||'text'}" value="${esc(t==='datetime-local'&&v?loc(v):v)}">`}</label>`};
- $('#dlg').innerHTML=`<div class="ov"><form class="dl"><h3>${title}</h3>${fields.map(inp).join('')}<div class="rw"><button type="button" class="b g" data-x>Cancel</button><button class="b">Save</button></div></form></div>`;
- const f=$('#dlg form');f.onsubmit=async e=>{e.preventDefault();const d={};
-  for(const[k,,t]of fields){const el=f.elements[k];d[k]=t==='check'?el.checked:t==='file'?(el.files[0]?await up(el.files[0],k):init[k]):t==='datetime-local'?(el.value?new Date(el.value).getTime():''):el.value}
-  try{await submit(d);$('#dlg').innerHTML='';go()}catch(x){}}}
-async function view(id,u){const[w,t,r]=await Promise.all([db.doc('wallets/'+id).get(),db.collection('transactions').where('uid','==',id).limit(40).get(),db.collection('registrations').where('uid','==',id).limit(40).get()]),W=w.data()||{};
- const tx=t.docs.map(x=>x.data()).sort((a,b)=>((b.at&&b.at.seconds)||0)-((a.at&&a.at.seconds)||0));
- $('#dlg').innerHTML=`<div class="ov"><div class="dl"><h3>${esc(u.username)}</h3><p class="mu">${esc(u.email)}<br>User ID ${id}<br>Mobile: ${esc(u.mobile||'—')} · Gamer IDs: ${esc(JSON.stringify(u.gameIds||{}))}<br>XP: ${u.xp||0} · Level: ${u.level||1} · ${esc(u.title||'Rookie')} · Joined ${when(u.createdAt)}</p><div class="cards">${[['Deposit',W.deposit],['Winnings',W.winnings],['Bonus',W.bonus],['Earned',W.earned],['Withdrawn',W.withdrawn]].map(([l,v])=>`<div class="c"><small>${l}</small><b>${inr(v)}</b></div>`).join('')}</div><h4>Transactions</h4>${tbl(['Type','Amount','Status','Date'],tx.map(x=>[x.type,inr(x.amount),x.status,when(x.at)]))}<h4>Tournaments</h4>${tbl(['Tournament ID','In-game name','Status','Prize'],r.docs.map(x=>{const y=x.data();return[esc(y.tid),esc(y.ign),y.status,inr(y.prize)]}))}<div class="rw"><button class="b g" data-x>Close</button></div></div></div>`}
-async function tform(id,t={}){const g=await GAMES();form(id?'Edit tournament':'New tournament',[['title','Title'],['game','Game','select',g],['type','Category','select',['Solo','Duo','Squad','Custom','Special event']],['map','Map'],['fee','Entry fee (₹)','number'],['prize','Prize pool (₹)','number'],['max','Total slots','number'],['startAt','Match date and time','datetime-local'],['poster','Poster','file'],['split','Prize distribution (for example 50,30,20)'],['rules','Rules','area'],['streamUrl','YouTube live URL','url'],['featured','Featured','check']],{...t,startAt:t.startAt&&t.startAt.toMillis()},d=>call('adminUpsert',{col:'tournaments',id,data:d}))}
-const rform=id=>form('Room details (visible to registered players only)',[['roomId','Room ID'],['roomPass','Room password']],{},d=>call('adminSetRoom',{tid:id,...d}));
-const act=async(id,action)=>{if(!confirm(action==='cancel'?'Cancel this tournament and refund every player?':'Confirm: '+action+'?'))return;await call('adminTournamentAction',{tid:id,action});go()};
-const rev=async(id,ok)=>{if(confirm(ok?'Credit this deposit to the wallet? Check the gateway dashboard first.':'Reject this deposit?')){await call('adminReviewDeposit',{id,approve:ok});go()}};
-const V={
-async dash(){const s=await call('adminStats');return`<h2>Dashboard</h2><div class="cards">${[['Registered users',s.users],['Active users (7 days)',s.active],['Tournaments',s.tours],['Ongoing',s.live],['Completed',s.done],['Total deposits',inr(s.deposits)],['Total withdrawals',inr(s.withdrawals)],['Pending payments',s.pendingDeps],['Pending withdrawals',s.pendingWds],['Platform revenue',inr(s.revenue)]].map(([l,v])=>`<div class="c"><small>${l}</small><b>${v}</b></div>`).join('')}</div>`},
-async users(){const q=await db.collection('users').orderBy('createdAt','desc').limit(300).get();
- return`<h2>Users</h2><input id="q" placeholder="Search by username or email">`+tbl(['Username','Email','Joined','Tournaments','Status',''],q.docs.map(d=>{const u=d.data();return[esc(u.username),esc(u.email),when(u.createdAt),u.joined||0,u.blocked?'<span class="er">Blocked</span>':'Active',btn('View',()=>view(d.id,u),'g')+(RANK[role]>=1?btn('Message',()=>form('Message player',[['title','Title'],['body','Message','area']],{},x=>call('adminMessageUser',{uid:d.id,...x})),'g'):'')+(RANK[role]>=2?btn('Edit',()=>form('Edit player',[['username','Username'],['mobile','Mobile'],['photoURL','Photo URL'],['ff','Free Fire UID'],['bg','BGMI UID'],['mc','Minecraft tag']],{username:u.username,mobile:u.mobile||'',photoURL:u.photoURL||'',ff:u.gameIds?.ff||'',bg:u.gameIds?.bg||'',mc:u.gameIds?.mc||''},x=>call('adminEditUser',{uid:d.id,data:{username:x.username,mobile:x.mobile,photoURL:x.photoURL,gameIds:{ff:x.ff,bg:x.bg,mc:x.mc}}})),'g')+btn('Soft delete',async()=>{if(confirm('Disable this player account? Financial records are preserved.')){await call('adminDeleteUser',{uid:d.id});go()}},'r'):'')+(RANK[role]>=2?btn(u.blocked?'Unblock':'Block',async()=>{if(confirm((u.blocked?'Unblock ':'Block ')+u.username+'?')){await call('adminBlockUser',{uid:d.id,blocked:!u.blocked});go()}},u.blocked?'':'r'):'')]}))},
-async tours(){const q=await db.collection('tournaments').orderBy('startAt','desc').limit(100).get();
- return`<h2>Tournaments</h2>${btn('New tournament',()=>tform())}`+tbl(['Title','Game','Category','Entry','Prize','Slots','Status','Starts',''],q.docs.map(d=>{const t=d.data(),s=t.status,id=d.id,a=[btn('Edit',()=>tform(id,t),'g'),btn('Room',()=>rform(id),'g')];
-  if(s==='upcoming')a.push(btn('Start',()=>act(id,'start')));if(s==='live')a.push(btn('Complete',()=>act(id,'complete')));
-  if(['upcoming','live'].includes(s))a.push(btn('Cancel',()=>act(id,'cancel'),'r'));
-  if(!t.joined&&RANK[role]>=2)a.push(btn('Delete',async()=>{if(confirm('Delete '+t.title+'?')){await call('adminUpsert',{col:'tournaments',id,del:true});go()}},'r'));
-  return[esc(t.title),esc(t.game),esc(t.type),inr(t.fee),inr(t.prize),(t.joined||0)+'/'+t.max,s,when(t.startAt),a.join('')]}))},
-async results(){const ts=(await db.collection('tournaments').where('status','in',['live','completed']).get()).docs.filter(d=>!d.data().resultsPublished);
- return`<h2>Results and prizes</h2><p class="mu">Choose a tournament, enter the rank and prize for each winner, then publish. Prizes are credited to winnings wallets and the leaderboard is updated.</p><select id="rt"><option value="">Choose a tournament</option>${ts.map(d=>`<option value="${d.id}">${esc(d.data().title)} (${d.data().status}, prize pool ${inr(d.data().prize)})</option>`).join('')}</select><div id="rr"></div>`},
-async deps(){const q=await db.collection('deposits').orderBy('createdAt','desc').limit(100).get();
- return`<h2>Payments</h2><p class="mu">Verify manual UPI UTR and screenshot against your bank statement before approving. Approval credits the player's wallet.</p>`+tbl(['Player','Amount','Status','UTR / Payment ID','Proof','Created',''],q.docs.map(d=>{const x=d.data(),r=['review','expired','pending'].includes(x.status),proof=x.proofPath?`<a href="#" data-proof="${esc(x.proofPath)}">Open screenshot</a>`:'—';return[esc(x.email||x.uid),inr(x.amount),x.status,esc(x.utr||x.paymentId||''),proof,when(x.createdAt),r?btn('Approve',()=>rev(d.id,true))+btn('Reject',()=>rev(d.id,false),'r'):'']}))},
-async wds(){const q=await db.collection('withdrawals').orderBy('createdAt','desc').limit(100).get(),NX={pending:[['processing','Processing'],['approved','Approve'],['rejected','Reject']],processing:[['approved','Approve'],['rejected','Reject']],approved:[['paid','Mark paid'],['rejected','Reject']]};
- return`<h2>Withdrawals</h2><p class="mu">Check the UPI details, send the payout from your payout account, then mark it paid.</p>`+tbl(['Player','Amount','UPI ID','Account holder','Status','Date',''],q.docs.map(d=>{const x=d.data();return[esc(x.email||x.uid),inr(x.amount),esc(x.upi),esc(x.holder),x.status,when(x.createdAt),(NX[x.status]||[]).map(([to,l])=>btn(l,async()=>{if(confirm(l+': '+inr(x.amount)+' to '+x.upi+'?')){await call('adminReviewWithdrawal',{id:d.id,to});go()}},to==='rejected'?'r':'')).join('')]}))},
-async promo(){const[p,a]=await Promise.all([db.collection('promotions').get(),db.collection('announcements').get()]);
- const del=(col,id)=>btn('Delete',async()=>{if(confirm('Delete this item?')){await call('adminUpsert',{col,id,del:true});go()}},'r');
- const pf=(id,x={})=>form('Promotion',[['title','Title'],['kind','Type','select',['YouTube','WhatsApp','Instagram','Telegram','Banner']],['link','Link (https://...)','url'],['image','Banner image','file'],['order','Order','number'],['enabled','Enabled','check']],x,d=>call('adminUpsert',{col:'promotions',id,data:d}));
- const af=(id,x={})=>form('Announcement',[['title','Title'],['text','Message','area'],['enabled','Enabled','check'],['pinned','Pinned','check']],x,d=>call('adminUpsert',{col:'announcements',id,data:d}));
- return`<h2>Promotions</h2>${btn('New promotion',()=>pf(undefined,{enabled:true}))}`+tbl(['Title','Type','Link','Enabled',''],p.docs.map(d=>{const x=d.data();return[esc(x.title),esc(x.kind),esc(x.link),x.enabled?'Yes':'No',btn('Edit',()=>pf(d.id,x),'g')+del('promotions',d.id)]}))+`<h2>Announcements</h2>${btn('New announcement',()=>af(undefined,{enabled:true}))}`+tbl(['Title','Message','Enabled',''],a.docs.map(d=>{const x=d.data();return[esc(x.title),esc(x.text),x.enabled?'Yes':'No',btn('Edit',()=>af(d.id,x),'g')+del('announcements',d.id)]}))},
-async set(){const s=(await db.doc('settings/public').get()).data()||{},r=await db.collection('admin_roles').get();
- const sf=()=>form('Platform settings',[['brandName','Brand name'],['games','Games (comma separated)'],['supportWhatsapp','WhatsApp support link','url'],['supportEmail','Support email','email'],['supportUrl','Contact page link','url'],['helpUrl','Help centre link','url'],['upiMerchantName','UPI merchant name'],['upiId','UPI ID for manual deposits'],['minWithdraw','Minimum withdrawal (₹)','number'],['roomOpenMinutes','Room opens before the match (minutes)','number']],s,d=>call('adminUpsert',{col:'settings',data:d}));
- return`<h2>Settings</h2>${btn('Edit platform settings',sf)}<p class="mu">Payment gateway keys are never stored here. They are Firebase secrets (see README).</p>`+tbl(['Setting','Value'],Object.entries(s).map(([k,v])=>[esc(k),esc(v)]))+(RANK[role]>=3?`<h2>Staff</h2>${btn('Add or change a staff role',()=>form('Staff role',[['email','Email (must already have an account)','email'],['role','Role','select',['admin','moderator','none']]],{},d=>call('setRole',d)))}`+tbl(['Email','Role'],r.docs.map(d=>[esc(d.data().email),d.data().role])):'')},
-async log(){const q=await db.collection('audit_logs').orderBy('at','desc').limit(100).get();return`<h2>Audit log</h2>`+tbl(['Time','Staff ID','Action','Details'],q.docs.map(d=>{const x=d.data();return[when(x.at),esc(String(x.uid).slice(0,8)),esc(x.action),esc(JSON.stringify(x.data))]}))}};
-const TABS=[['dash','Dashboard','moderator'],['users','Users','moderator'],['tours','Tournaments','moderator'],['results','Results','admin'],['deps','Payments','admin'],['wds','Withdrawals','admin'],['promo','Promotions','admin'],['set','Settings','admin'],['log','Audit log','admin']];
-async function go(t){tab=t||tab;A.length=0;$('#dlg').innerHTML='';$('#main').innerHTML='<p>Loading…</p>';
- $('.tabs').innerHTML=TABS.filter(x=>RANK[role]>=RANK[x[2]]).map(x=>`<button class="${x[0]===tab?'on':''}" data-t="${x[0]}">${x[1]}</button>`).join('');
- try{$('#main').innerHTML=await V[tab]()}catch(e){$('#main').innerHTML='<p class="er">'+esc(e.message)+'</p>'}}
-document.addEventListener('click',async e=>{const proof=e.target.closest('[data-proof]');if(proof){e.preventDefault();const win=window.open('about:blank','_blank');try{const url=await st.ref(proof.dataset.proof).getDownloadURL();if(win)win.location=url;else alert('Popup blocked. Copy this proof URL: '+url)}catch(x){if(win)win.close();alert(x.message)}return}const b=e.target.closest('button');if(!b)return;if(b.dataset.t)go(b.dataset.t);else if(b.dataset.i!==undefined)A[+b.dataset.i]();else if(b.dataset.x!==undefined)$('#dlg').innerHTML=''});
-document.addEventListener('input',e=>{if(e.target.id==='q'){const s=e.target.value.toLowerCase();document.querySelectorAll('#main tr').forEach((r,i)=>{if(i)r.hidden=!r.textContent.toLowerCase().includes(s)})}});
-document.addEventListener('change',async e=>{if(e.target.id!=='rt'||!e.target.value)return;const id=e.target.value,q=await db.collection('registrations').where('tid','==',id).get(),R=q.docs.map(d=>d.data()).filter(r=>r.status==='registered');
- A.length=0;$('#rr').innerHTML=tbl(['Player ID','In-game name','Game ID','Rank','Prize (₹)'],R.map(r=>[esc(String(r.uid).slice(0,8)),esc((r.members||[{ign:r.ign}]).map(m=>m.ign).join(', ')),esc((r.members||[{gameId:r.gameId}]).map(m=>m.gameId).join(', ')),`<input type="number" min="1" data-u="${r.uid}" data-k="rank" style="width:80px">`,`<input type="number" min="0" data-u="${r.uid}" data-k="prize" style="width:110px">`]))
- +btn('Publish results and credit winners',async()=>{const m={};document.querySelectorAll('#rr input').forEach(i=>{if(i.value!==''){m[i.dataset.u]=m[i.dataset.u]||{uid:i.dataset.u};m[i.dataset.u][i.dataset.k]=+i.value}});
-  const W=Object.values(m).filter(w=>w.rank);W.forEach(w=>w.prize=w.prize||0);if(!W.length)return alert('Enter a rank for at least one player.');
-  if(!confirm('Publish results and credit '+W.length+' winner(s)? This cannot be undone.'))return;await call('adminPublishResults',{tid:id,winners:W});go('results')})});
+const auth=firebase.auth(),db=firebase.firestore(),spark=UCEFirebaseSpark.create(db,auth),$=s=>document.querySelector(s),esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+const when=t=>t&&t.toDate?t.toDate().toLocaleString('en-IN'):'',num=n=>Number(n||0).toLocaleString('en-IN');
+const RANK={moderator:1,admin:2,superadmin:3};let role='',tab='dash',actions=[];
+const call=(n,d={})=>spark.call(n,d);
+const tbl=(heads,rows)=>'<div class="tw"><table><tr>'+heads.map(x=>'<th>'+x+'</th>').join('')+'</tr>'+(rows.map(r=>'<tr>'+r.map(x=>'<td>'+x+'</td>').join('')+'</tr>').join('')||'<tr><td colspan="'+heads.length+'">Nothing here yet.</td></tr>')+'</table></div>';
+const btn=(label,fn,cls='')=>{actions.push(fn);return '<button class="b '+cls+'" data-action="'+(actions.length-1)+'">'+label+'</button>'};
+const close=()=>$('#dlg').innerHTML='';
+function form(title,fields,initial,save){
+ const value=(k)=>initial[k]??'';
+ const input=([k,label,type,opts])=>'<label>'+label+(type==='select'?'<select name="'+k+'">'+opts.map(v=>'<option '+(value(k)===v?'selected':'')+'>'+esc(v)+'</option>').join('')+'</select>':type==='area'?'<textarea name="'+k+'" rows="4">'+esc(value(k))+'</textarea>':type==='check'?'<input name="'+k+'" type="checkbox" '+(value(k)?'checked':'')+'>':'<input name="'+k+'" type="'+(type||'text')+'" value="'+esc(value(k))+'">')+'</label>';
+ $('#dlg').innerHTML='<div class="ov"><form class="dl"><h3>'+title+'</h3>'+fields.map(input).join('')+'<div class="rw"><button type="button" class="b g" data-close>Cancel</button><button class="b">Save</button></div></form></div>';
+ $('#dlg form').onsubmit=async e=>{e.preventDefault();const f=e.target,d={};for(const[k,,type]of fields){const el=f.elements[k];d[k]=type==='check'?el.checked:type==='number'?Number(el.value):type==='datetime-local'?(el.value?new Date(el.value).getTime():''):el.value}try{await save(d);close();await go()}catch(x){alert(x.message)}};
+}
+async function userView(id,u){
+ const regs=await db.collection('registrations').where('uid','==',id).limit(100).get();
+ $('#dlg').innerHTML='<div class="ov"><div class="dl"><h3>'+esc(u.username||'Player')+'</h3><p class="mu">'+esc(u.email||'')+'<br>UID '+id+'<br>Mobile '+esc(u.mobile||'—')+'<br>XP '+num(u.xp)+' · Level '+num(u.level)+' · Wins '+num(u.wins)+' · Joined '+num(u.joined)+'</p>'+tbl(['Tournament','In-game names','Status','Rank','XP prize'],regs.docs.map(d=>{const x=d.data();return[esc(x.tid),(x.members||[]).map(m=>esc(m.ign)).join(', '),esc(x.status),x.rank||'—',num(x.prizeXp)]}))+'<div class="rw"><button class="b g" data-close>Close</button></div></div></div>';
+}
+async function tournamentForm(id,t={}){
+ form(id?'Edit tournament':'Create free tournament',[
+ ['title','Tournament title'],['game','Game','select',['Free Fire','BGMI','Minecraft']],
+ ['type','Format','select',['Solo','Duo','Squad']],['map','Map'],['prize','XP prize pool','number'],
+ ['max','Team slots','number'],['startAt','Start date and time','datetime-local'],
+ ['poster','Poster image URL (HTTPS)'],['split','XP prize split'],['rules','Rules','area'],
+ ['streamUrl','YouTube live URL','url'],['featured','Featured','check']
+ ],{...t,startAt:t.startAt&&t.startAt.toDate?new Date(t.startAt.toMillis()-new Date(t.startAt.toMillis()).getTimezoneOffset()*60000).toISOString().slice(0,16):''},
+ d=>call('adminUpsert',{col:'tournaments',id,data:d}));
+}
+async function roomForm(id){
+ const s=await db.doc('tournaments/'+id+'/private/room').get(),v=s.data()||{};
+ form('Private match room',[['roomId','Room ID'],['roomPass','Room password']],v,d=>call('adminSetRoom',{tid:id,...d}));
+}
+async function dashboard(){
+ const s=await call('adminStats');
+ return '<h2>Dashboard</h2><div class="cards">'+[['Registered players',s.users],['Active (7 days)',s.active],['Tournaments',s.tours],['Live matches',s.live],['Completed',s.done],['Registered teams',s.registeredTeams],['Total XP earned',num(s.xpAwarded)]].map(([l,v])=>'<div class="c"><small>'+l+'</small><b>'+v+'</b></div>').join('')+'</div><div class="notice">Spark free build · Free entry · XP-only rewards · Cash payments disabled.</div>';
+}
+async function users(){
+ const q=await db.collection('users').orderBy('createdAt','desc').limit(300).get();
+ return '<h2>Players</h2><input id="search" placeholder="Search username or email">'+tbl(['Player','Email','XP','Level','Joined','Status','Actions'],q.docs.map(d=>{
+ const u=d.data(),id=d.id;let a=btn('View',()=>userView(id,u),'g');
+ a+=btn('Message',()=>form('Send player message',[['title','Title'],['body','Message','area']],{},x=>call('adminMessageUser',{uid:id,...x})),'g');
+ if(RANK[role]>=2){a+=btn('Edit',()=>form('Edit player',[['username','Username'],['mobile','Mobile'],['photoURL','Photo URL'],['ff','Free Fire UID'],['bg','BGMI UID'],['mc','Minecraft tag']],{username:u.username,mobile:u.mobile||'',photoURL:u.photoURL||'',ff:u.gameIds?.ff||'',bg:u.gameIds?.bg||'',mc:u.gameIds?.mc||''},x=>call('adminEditUser',{uid:id,data:{username:x.username,mobile:x.mobile,photoURL:x.photoURL,gameIds:{ff:x.ff,bg:x.bg,mc:x.mc}}})),'g');
+ a+=btn(u.blocked?'Unblock':'Block',async()=>{if(confirm('Change player access?')){await call('adminBlockUser',{uid:id,blocked:!u.blocked});go()}},'r');
+ a+=btn('Soft delete',async()=>{if(confirm('Block and mark this player deleted?')){await call('adminDeleteUser',{uid:id});go()}},'r')}
+ return[esc(u.username),esc(u.email),num(u.xp),num(u.level),num(u.joined),u.blocked?'Blocked':'Active',a]
+ })) ;
+}
+async function tournaments(){
+ const q=await db.collection('tournaments').orderBy('startAt','desc').limit(150).get();
+ return '<h2>Tournaments</h2>'+btn('Create tournament',()=>tournamentForm())+tbl(['Tournament','Game','Format','XP pool','Teams','Status','Start','Actions'],q.docs.map(d=>{
+ const t=d.data(),id=d.id,s=t.status;let a=btn('Edit',()=>tournamentForm(id,t),'g')+btn('Room',()=>roomForm(id),'g');
+ if(s==='upcoming')a+=btn('Start',()=>act(id,'start'));
+ if(s==='live')a+=btn('Complete',()=>act(id,'complete'));
+ if(['upcoming','live'].includes(s))a+=btn('Cancel',()=>act(id,'cancel'),'r');
+ if(!t.joined&&RANK[role]>=2)a+=btn('Delete',async()=>{if(confirm('Delete tournament?')){await call('adminUpsert',{col:'tournaments',id,del:true});go()}},'r');
+ return[esc(t.title),esc(t.game),esc(t.type),num(t.prize)+' XP',num(t.joined)+'/'+num(t.max),esc(s),when(t.startAt),a]
+ }));
+}
+async function act(id,action){
+ if(!confirm(action==='cancel'?'Cancel this tournament? Registered teams will be marked cancelled.':'Confirm '+action+'?'))return;
+ await call('adminTournamentAction',{tid:id,action});go();
+}
+async function results(){
+ const q=await db.collection('tournaments').where('status','in',['live','completed']).get();
+ const ts=q.docs.filter(d=>!d.data().resultsPublished);
+ return '<h2>Match results</h2><p class="mu">Assign rank and XP prizes. Total XP prize cannot exceed the tournament XP pool.</p><select id="resultTour"><option value="">Choose tournament</option>'+ts.map(d=>'<option value="'+d.id+'">'+esc(d.data().title)+' · '+num(d.data().prize)+' XP</option>').join('')+'</select><div id="resultRows"></div>';
+}
+async function promotions(){
+ const [p,a]=await Promise.all([db.collection('promotions').get(),db.collection('announcements').get()]);
+ const promoForm=(id,x={})=>form('Promotion',[['title','Title'],['kind','Type','select',['YouTube','WhatsApp','Instagram','Telegram','Banner']],['link','HTTPS link'],['image','Image URL (HTTPS)'],['order','Order','number'],['enabled','Enabled','check']],x,d=>call('adminUpsert',{col:'promotions',id,data:d}));
+ const annForm=(id,x={})=>form('Announcement',[['title','Title'],['text','Message','area'],['enabled','Enabled','check'],['pinned','Pinned','check']],x,d=>call('adminUpsert',{col:'announcements',id,data:d}));
+ let out='<h2>Promotions</h2>'+btn('New promotion',()=>promoForm(null,{enabled:true}));
+ out+=tbl(['Title','Type','Link','Enabled','Actions'],p.docs.map(d=>{const x=d.data();return[esc(x.title),esc(x.kind),esc(x.link),x.enabled?'Yes':'No',btn('Edit',()=>promoForm(d.id,x),'g')+btn('Delete',async()=>{if(confirm('Delete promotion?')){await call('adminUpsert',{col:'promotions',id:d.id,del:true});go()}},'r')]}));
+ out+='<h2>Announcements</h2>'+btn('New announcement',()=>annForm(null,{enabled:true}));
+ out+=tbl(['Title','Message','Enabled','Actions'],a.docs.map(d=>{const x=d.data();return[esc(x.title),esc(x.text),x.enabled?'Yes':'No',btn('Edit',()=>annForm(d.id,x),'g')+btn('Delete',async()=>{if(confirm('Delete announcement?')){await call('adminUpsert',{col:'announcements',id:d.id,del:true});go()}},'r')]}));
+ return out;
+}
+async function settings(){
+ const s=(await db.doc('settings/public').get()).data()||{};
+ const roles=await db.collection('admin_roles').get();
+ let out='<h2>Platform settings</h2>'+btn('Edit settings',()=>form('Settings',[['brandName','Brand name'],['games','Games (comma separated)'],['supportWhatsapp','WhatsApp support URL'],['supportEmail','Support email'],['supportUrl','Support URL'],['helpUrl','Help URL'],['roomOpenMinutes','Room opens before match (minutes)','number']],s,d=>call('adminUpsert',{col:'settings',data:d})));
+ out+=tbl(['Setting','Value'],Object.entries(s).filter(([k])=>!['upiId','upiMerchantName','minWithdraw'].includes(k)).map(([k,v])=>[esc(k),esc(v)]));
+ if(role==='superadmin'){
+  out+='<h2>Staff access</h2><p class="mu">Enter the Firebase Authentication UID of an existing verified staff member. The owner account alone can change roles.</p>';
+  out+=btn('Add or change staff role',()=>form('Staff role',[['uid','Firebase Auth UID'],['role','Role','select',['admin','moderator','none']]],{},d=>call('setRole',d)));
+  out+=tbl(['UID','Role'],roles.docs.map(d=>[esc(d.id),esc(d.data().role)]));
+ }
+ return out;
+}
+async function auditLog(){
+ const q=await db.collection('audit_logs').orderBy('at','desc').limit(100).get();
+ return '<h2>Audit log</h2>'+tbl(['Time','Staff','Action','Details'],q.docs.map(d=>{const x=d.data();return[when(x.at),esc(x.email||x.uid),esc(x.action),esc(JSON.stringify(x.data||{}))]}));
+}
+const V={dash:dashboard,users,tours:tournaments,results,promo:promotions,set:settings,log:auditLog};
+const TABS=[['dash','Dashboard','moderator'],['users','Players','moderator'],['tours','Tournaments','moderator'],['results','Results','admin'],['promo','Promotions','admin'],['set','Settings','admin'],['log','Audit log','admin']];
+async function go(next){if(next)tab=next;actions=[];$('#dlg').innerHTML='';$('#main').innerHTML='<p>Loading…</p>';
+ $('.tabs').innerHTML=TABS.filter(x=>RANK[role]>=RANK[x[2]]).map(x=>'<button class="'+(x[0]===tab?'on':'')+'" data-tab="'+x[0]+'">'+x[1]+'</button>').join('');
+ try{$('#main').innerHTML=await V[tab]()}catch(e){$('#main').innerHTML='<p class="er">'+esc(e.message)+'</p>'}
+}
+document.addEventListener('click',async e=>{
+ const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.tab)go(b.dataset.tab);
+ if(b.dataset.action!==undefined){const f=actions[Number(b.dataset.action)];if(f)try{await f()}catch(x){alert(x.message)}}
+ if(b.hasAttribute('data-close'))close();
+});
+document.addEventListener('input',e=>{if(e.target.id==='search'){const q=e.target.value.toLowerCase();document.querySelectorAll('#main tr').forEach((r,i)=>{if(i)r.hidden=!r.textContent.toLowerCase().includes(q)})}});
+document.addEventListener('change',async e=>{
+ if(e.target.id!=='resultTour'||!e.target.value)return;
+ const id=e.target.value,q=await db.collection('registrations').where('tid','==',id).get();
+ const regs=q.docs.filter(d=>d.data().status==='registered');
+ actions=[];
+ $('#resultRows').innerHTML=tbl(['Player','In-game names','Rank','XP prize'],regs.map(d=>{const r=d.data();return[esc(r.uid.slice(0,9)),esc((r.members||[]).map(m=>m.ign).join(', ')),'<input type="number" min="1" data-player="'+r.uid+'" data-key="rank" style="width:70px">','<input type="number" min="0" data-player="'+r.uid+'" data-key="prize" style="width:100px">']}).concat([]))
+ +btn('Publish results',async()=>{
+  const m={};document.querySelectorAll('#resultRows input').forEach(i=>{if(i.value!==''){m[i.dataset.player]=m[i.dataset.player]||{uid:i.dataset.player};m[i.dataset.player][i.dataset.key]=Number(i.value)}});
+  const winners=Object.values(m).filter(x=>x.rank);winners.forEach(x=>x.prize=x.prize||0);
+  if(!winners.length)return alert('Enter at least one rank.');
+  if(!confirm('Publish these results and award XP?'))return;
+  await call('adminPublishResults',{tid:id,winners});go('results');
+ });
+});
 $('#lf').onsubmit=async e=>{e.preventDefault();const f=e.target.elements;try{await auth.signInWithEmailAndPassword(f.e.value,f.p.value)}catch(x){$('#msg').textContent=x.message}};
 $('#gg').onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(x=>{$('#msg').textContent=x.message});
-$('#su').onclick=async()=>{try{await call('setupFirstAdmin');location.reload()}catch(e){}};
-$('#so').onclick=$('#out').onclick=()=>auth.signOut();
-auth.onAuthStateChanged(async u=>{$('#login').hidden=!!u;$('#app').hidden=!u;if(!u)return;
- role=(await u.getIdTokenResult(true)).claims.role||'';
- if(RANK[role]){go('dash');return}
- $('#app').hidden=true;$('#login').hidden=false;$('#msg').textContent='Signed in as '+u.email+', but this account has no admin role.';$('#su').hidden=false;$('#so').hidden=false});
+$('#out').onclick=()=>auth.signOut();
+auth.onAuthStateChanged(async u=>{
+ $('#login').hidden=!!u;$('#app').hidden=!u;if(!u)return;
+ try{role=await spark.getRole();if(!RANK[role])throw new Error('This verified account does not have admin access.');go('dash')}
+ catch(e){await auth.signOut();$('#msg').textContent=e.message}
+});
 </script></body></html>
