@@ -9,6 +9,10 @@ service cloud.firestore {
     function admin() { return role() in ['admin','superadmin']; }
     function mine(uid) { return signedIn() && request.auth.uid == uid; }
     function registrationExists(tid, uid) { return exists(/databases/$(database)/documents/registrations/$(tid + '_' + uid)); }
+    function validMember(m) {
+      return m is map && m.ign is string && m.ign.size() >= 3 && m.ign.size() <= 24
+        && m.gameId is string && m.gameId.size() >= 3 && m.gameId.size() <= 20;
+    }
     function validProfile(data) {
       return data.username is string && data.username.size() >= 3 && data.username.size() <= 24
         && data.mobile is string && data.mobile.size() <= 18
@@ -31,9 +35,13 @@ service cloud.firestore {
         && request.resource.data.xp <= resource.data.xp + 50
         && request.resource.data.lastDailyClaimAt == request.time
         && (!('lastDailyClaimAt' in resource.data) || resource.data.lastDailyClaimAt < request.time - duration.value(24,'h'))
+        && request.resource.data.level == int(request.resource.data.xp / 500) + 1
+        && request.resource.data.title == (request.resource.data.level >= 20 ? 'Legend' : request.resource.data.level >= 10 ? 'Elite' : request.resource.data.level >= 5 ? 'Veteran' : 'Rookie')
         && request.resource.data.dailyStreak >= 1 && request.resource.data.dailyStreak <= 7
       ) || (mine(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['xp','level','title','joined','lastJoinId'])
         && request.resource.data.xp == resource.data.xp + 50
+        && request.resource.data.level == int(request.resource.data.xp / 500) + 1
+        && request.resource.data.title == (request.resource.data.level >= 20 ? 'Legend' : request.resource.data.level >= 10 ? 'Elite' : request.resource.data.level >= 5 ? 'Veteran' : 'Rookie')
         && request.resource.data.joined == resource.data.joined + 1
         && request.resource.data.lastJoinId is string
         && !exists(/databases/$(database)/documents/registrations/$(request.resource.data.lastJoinId))
@@ -45,8 +53,8 @@ service cloud.firestore {
     match /wallets/{uid} { allow read: if mine(uid) || moderator(); allow write: if false; }
     match /tournaments/{tid} {
       allow read: if true;
-      allow create, delete: if moderator();
-      allow update: if moderator() || (signedIn()
+      allow create, delete: if moderator() && request.resource.data.fee == 0 && request.resource.data.prize is int && request.resource.data.prize >= 0;
+      allow update: if (moderator() && request.resource.data.fee == 0 && request.resource.data.prize is int && request.resource.data.prize >= 0) || (signedIn()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['joined','playerCount'])
         && request.resource.data.joined == resource.data.joined + 1
         && request.resource.data.playerCount == resource.data.playerCount + getAfter(/databases/$(database)/documents/registrations/$(tid + '_' + request.auth.uid)).data.seatCount
@@ -67,6 +75,8 @@ service cloud.firestore {
       allow create: if signedIn() && request.resource.data.uid == request.auth.uid
         && request.resource.data.tid is string && id == request.resource.data.tid + '_' + request.auth.uid
         && request.resource.data.status == 'registered' && request.resource.data.fee == 0
+        && request.resource.data.members[0].ign is string && validMember(request.resource.data.members[0])
+        && (request.resource.data.seatCount == 1 || (request.resource.data.seatCount == 2 && validMember(request.resource.data.members[1])) || (request.resource.data.seatCount == 4 && validMember(request.resource.data.members[1]) && validMember(request.resource.data.members[2]) && validMember(request.resource.data.members[3])))
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.blocked == false
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.deleted == false
         && request.resource.data.members is list && request.resource.data.seatCount in [1,2,4]
@@ -83,7 +93,10 @@ service cloud.firestore {
       allow read: if true;
       allow create: if mine(uid) && registrationExists(tid,uid)
         && getAfter(/databases/$(database)/documents/registrations/$(tid + '_' + uid)).data.status == 'registered'
-        && request.resource.data.uid == uid && request.resource.data.status == 'registered';
+        && request.resource.data.uid == uid && request.resource.data.status == 'registered'
+        && request.resource.data.members == getAfter(/databases/$(database)/documents/registrations/$(tid + '_' + uid)).data.members
+        && request.resource.data.seatCount == getAfter(/databases/$(database)/documents/registrations/$(tid + '_' + uid)).data.seatCount
+        && request.resource.data.username == get(/databases/$(database)/documents/users/$(uid)).data.username;
       allow update, delete: if moderator();
     }
     match /transactions/{id} { allow read: if mine(resource.data.uid) || moderator(); allow write: if false; }
