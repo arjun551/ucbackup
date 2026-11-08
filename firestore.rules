@@ -15,6 +15,7 @@ service cloud.firestore {
         && request.resource.data.username is string
         && request.resource.data.username.size() >= 3
         && request.resource.data.username.size() <= 24
+        && (!('photoURL' in request.resource.data) || request.resource.data.photoURL is string && request.resource.data.photoURL.size() <= 60000)
         && (!('mobile' in request.resource.data) || request.resource.data.mobile is string && request.resource.data.mobile.size() <= 18);
     }
     match /wallets/{uid} { allow read: if mine(uid) || staff(); }
