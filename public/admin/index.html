@@ -77,7 +77,7 @@ async function tournaments(){
  return '<h2>Tournaments</h2>'+btn('Create tournament',()=>tournamentForm())+tbl(['Tournament','Game','Format','XP pool','Teams','Status','Start','Actions'],q.docs.map(d=>{
  const t=d.data(),id=d.id,s=t.status;let a=btn('Edit',()=>tournamentForm(id,t),'g')+btn('Room',()=>roomForm(id),'g');
  if(s==='upcoming')a+=btn('Start',()=>act(id,'start'));
- if(s==='live')a+=btn('Complete',()=>act(id,'complete'));
+ if(s==='live'&&RANK[role]>=2)a+=btn('Complete',()=>act(id,'complete'));
  if(['upcoming','live'].includes(s))a+=btn('Cancel',()=>act(id,'cancel'),'r');
  if(!t.joined&&RANK[role]>=2)a+=btn('Delete',async()=>{if(confirm('Delete tournament?')){await call('adminUpsert',{col:'tournaments',id,del:true});go()}},'r');
  return[esc(t.title),esc(t.game),esc(t.type),num(t.prize)+' XP',num(t.joined)+'/'+num(t.max),esc(s),when(t.startAt),a]
