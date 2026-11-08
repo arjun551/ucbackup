@@ -36,6 +36,7 @@ service cloud.firestore {
         && request.resource.data.xp == resource.data.xp + 50
         && request.resource.data.joined == resource.data.joined + 1
         && request.resource.data.lastJoinId is string
+        && !exists(/databases/$(database)/documents/registrations/$(request.resource.data.lastJoinId))
         && existsAfter(/databases/$(database)/documents/registrations/$(request.resource.data.lastJoinId))) || (admin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
         'username','photoURL','gameIds','mobile','blocked','deleted','deletedAt','xp','level','title','wins','joined'
       ]));
@@ -66,6 +67,8 @@ service cloud.firestore {
       allow create: if signedIn() && request.resource.data.uid == request.auth.uid
         && request.resource.data.tid is string && id == request.resource.data.tid + '_' + request.auth.uid
         && request.resource.data.status == 'registered' && request.resource.data.fee == 0
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.blocked == false
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.deleted == false
         && request.resource.data.members is list && request.resource.data.seatCount in [1,2,4]
         && request.resource.data.members.size() == request.resource.data.seatCount
         && get(/databases/$(database)/documents/tournaments/$(request.resource.data.tid)).data.status == 'upcoming'
