@@ -53,7 +53,7 @@ const when=t=>t&&t.toDate?t.toDate().toLocaleString('en-IN'):'',inr=n=>'₹'+Num
 const tbl=(h,r)=>`<div class="tw"><table><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr>${r.map(x=>`<tr>${x.map(y=>`<td>${y}</td>`).join('')}</tr>`).join('')||`<tr><td colspan="${h.length}">Nothing here yet.</td></tr>`}</table></div>`;
 const btn=(l,f,c='')=>{A.push(f);return`<button class="b ${c}" data-i="${A.length-1}">${l}</button>`};
 const loc=ms=>new Date(ms-new Date(ms).getTimezoneOffset()*6e4).toISOString().slice(0,16);
-await r.put(f);return r.getDownloadURL()};
+
 const GAMES=async()=>(((await db.doc('settings/public').get()).data()||{}).games||'Free Fire,BGMI,Minecraft').split(',').map(x=>x.trim()).filter(Boolean);
 function form(title,fields,init,submit){
  const inp=([k,l,t,o])=>{const v=init[k];return`<label>${l}${t==='select'?`<select name="${k}">${o.map(x=>`<option${v==x?' selected':''}>${esc(x)}</option>`).join('')}</select>`:t==='area'?`<textarea name="${k}" rows="4">${esc(v)}</textarea>`:t==='check'?`<input type="checkbox" name="${k}"${v?' checked':''}>`:t==='file'?`<input type="file" name="${k}" accept="image/*">${v?'<small>An image is already set. Choose a file only to replace it.</small>':''}`:`<input name="${k}" type="${t||'text'}" value="${esc(t==='datetime-local'&&v?loc(v):v)}">`}</label>`};
