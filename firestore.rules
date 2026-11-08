@@ -53,7 +53,8 @@ service cloud.firestore {
     match /wallets/{uid} { allow read: if mine(uid) || moderator(); allow write: if false; }
     match /tournaments/{tid} {
       allow read: if true;
-      allow create, delete: if moderator() && request.resource.data.fee == 0 && request.resource.data.prize is int && request.resource.data.prize >= 0;
+      allow create: if moderator() && request.resource.data.fee == 0 && request.resource.data.prize is int && request.resource.data.prize >= 0;
+      allow delete: if moderator();
       allow update: if (moderator() && request.resource.data.fee == 0 && request.resource.data.prize is int && request.resource.data.prize >= 0) || (signedIn()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['joined','playerCount'])
         && request.resource.data.joined == resource.data.joined + 1
