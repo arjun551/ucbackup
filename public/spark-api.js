@@ -286,7 +286,8 @@
     }
 
     async function adminTournamentAction(data) {
-      await requireRole('moderator');
+      const actionRequested = clean(data.action, 20);
+      await requireRole(actionRequested === 'complete' ? 'admin' : 'moderator');
       const id = clean(data.tid, 120), action = clean(data.action, 20), tr = tournamentRef(id);
       const snap = await tr.get();
       if (!snap.exists) fail('Tournament not found.');
