@@ -319,9 +319,9 @@
         if (!['upcoming', 'live'].includes(status)) fail('This tournament cannot be cancelled.');
         await tr.update({ status: 'cancelled' });
         const regs = await db.collection('registrations').where('tid', '==', id).where('status', '==', 'registered').get();
-        for (let i = 0; i < regs.docs.length; i += 350) {
+        for (let i = 0; i < regs.docs.length; i += 150) {
           const batch = db.batch();
-          regs.docs.slice(i, i + 350).forEach(doc => {
+          regs.docs.slice(i, i + 150).forEach(doc => {
             batch.update(doc.ref, { status: 'cancelled' });
             batch.set(db.doc('tournament_rosters/' + id + '/teams/' + doc.data().uid), { status: 'cancelled' }, { merge: true });
             batch.set(db.collection('notifications').doc(), {
@@ -346,49 +346,43 @@
         if (!w || typeof w.uid !== 'string' || seen.has(w.uid) || !Number.isInteger(w.rank) || w.rank < 1 || !Number.isInteger(w.prize) || w.prize < 0) fail('Each winner needs a unique player, a whole-number rank and a whole-number XP prize.');
         seen.add(w.uid);
       });
-      const tr = tournamentRef(id), tourSnap = await tr.get();
-      if (!tourSnap.exists) fail('Tournament not found.');
-      const tour = tourSnap.data();
-      if (!['live', 'completed'].includes(tour.status) || tour.resultsPublished) fail('Results cannot be published for this tournament.');
-      if (winners.reduce((sum, w) => sum + w.prize, 0) > Number(tour.prize || 0)) fail('XP prizes add up to more than the tournament XP pool.');
-      const results = [];
-      for (const winner of winners) {
-        await db.runTransaction(async tx => {
-          const rr = registrationRef(id, winner.uid), ur = userRef(winner.uid), lr = leaderboardRef(winner.uid);
-          const vals = await Promise.all([tx.get(rr), tx.get(ur), tx.get(lr)]);
-          const reg = vals[0], us = vals[1];
-          if (!reg.exists || reg.data().status !== 'registered') fail('A selected winner is not registered in this tournament.');
-          if (reg.data().resultPublished) {
-            results.push({ uid: winner.uid, rank: winner.rank, prize: winner.prize });
-            return;
-          }
+      const tr = tournamentRef(id);
+      const resultRows = winners.map(w => ({ uid: w.uid, rank: w.rank, prize: w.prize }));
+      await db.runTransaction(async tx => {
+        const refs = [tr];
+        winners.forEach(w => refs.push(registrationRef(id, w.uid), userRef(w.uid)));
+        const snaps = await tx.getAll(...refs);
+        const ts = snaps[0];
+        if (!ts.exists) fail('Tournament not found.');
+        const tour = ts.data();
+        if (!['live', 'completed'].includes(tour.status) || tour.resultsPublished) fail('Results cannot be published for this tournament.');
+        if (winners.reduce((sum, w) => sum + w.prize, 0) > Number(tour.prize || 0)) fail('XP prizes add up to more than the tournament XP pool.');
+        winners.forEach((w, i) => {
+          const reg = snaps[1 + i * 2], us = snaps[2 + i * 2];
+          if (!reg.exists || reg.data().status !== 'registered' || reg.data().resultPublished) fail('A selected winner is not an eligible registered player.');
           if (!us.exists) fail('A selected player profile is missing.');
-          const user = us.data(), bonusXp = 200 + winner.prize;
-          const xp = Number(user.xp || 0) + bonusXp;
-          const wins = Number(user.wins || 0) + (winner.rank === 1 ? 1 : 0);
+          const user = us.data(), xp = Number(user.xp || 0) + 200 + w.prize;
+          const wins = Number(user.wins || 0) + (w.rank === 1 ? 1 : 0);
           const level = levelFor(xp);
-          const next = Object.assign({}, user, { xp: xp, wins: wins, level: level, title: titleFor(level) });
-          tx.update(ur, { xp: xp, wins: wins, level: level, title: titleFor(level) });
-          tx.update(rr, { rank: winner.rank, prizeXp: winner.prize, resultPublished: true });
-          await updateLeaderboard(tx, winner.uid, next);
+          tx.update(userRef(w.uid), { xp: xp, wins: wins, level: level, title: titleFor(level) });
+          tx.update(registrationRef(id, w.uid), { rank: w.rank, prizeXp: w.prize, resultPublished: true });
+          tx.set(leaderboardRef(w.uid), {
+            uid: w.uid, username: user.username || 'Player', photoURL: user.photoURL || '',
+            xp: xp, wins: wins
+          }, { merge: true });
           tx.set(db.collection('notifications').doc(), {
-            uid: winner.uid, title: 'Tournament result',
-            body: 'You placed #' + winner.rank + ' in ' + clean(tour.title, 100) + ' and earned ' + bonusXp + ' XP.',
+            uid: w.uid, title: 'Tournament result',
+            body: 'You placed #' + w.rank + ' in ' + clean(tour.title, 100) + ' and earned ' + (200 + w.prize) + ' XP.',
             read: false, at: F().serverTimestamp()
           });
-          results.push({ uid: winner.uid, rank: winner.rank, prize: winner.prize });
         });
-      }
-      await db.runTransaction(async tx => {
-        const current = await tx.get(tr);
-        if (!current.exists || current.data().resultsPublished) fail('Results were already published.');
         tx.set(db.doc('results/' + id), {
           tid: id, title: clean(tour.title, 100), game: clean(tour.game, 40),
-          winners: results, at: F().serverTimestamp()
+          winners: resultRows, at: F().serverTimestamp()
         });
         tx.update(tr, { status: 'completed', resultsPublished: true });
       });
-      await audit('publishResults', { tid: id, winners: results.length });
+      await audit('publishResults', { tid: id, winners: resultRows.length });
       return { ok: true };
     }
 
