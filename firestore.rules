@@ -2,8 +2,8 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
-    function owner() { return signedIn() && request.auth.token.email == 'ucwebdeveloper07@gmail.com' && request.auth.token.email_verified == true; }
-    function role() { return owner() ? 'superadmin' : (signedIn() && request.auth.token.email_verified == true
+    function owner() { return signedIn() && request.auth.token.get('email','') == 'ucwebdeveloper07@gmail.com' && request.auth.token.get('email_verified',false) == true; }
+    function role() { return owner() ? 'superadmin' : (signedIn() && request.auth.token.get('email_verified',false) == true
       && exists(/databases/$(database)/documents/admin_roles/$(request.auth.uid))
       ? get(/databases/$(database)/documents/admin_roles/$(request.auth.uid)).data.role : ''); }
     function moderator() { return role() in ['moderator','admin','superadmin']; }
