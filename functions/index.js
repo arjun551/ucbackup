@@ -259,7 +259,7 @@ exports.adminReviewWithdrawal=fn.https.onCall(async(d,c)=>{const me=staff(c,'adm
 exports.adminPublishResults=fn.runWith({timeoutSeconds:300}).https.onCall(async(d,c)=>{
  const me=staff(c,'admin'),id=String(d.tid||''),W=Array.isArray(d.winners)?d.winners:[];
  if(!W.length||W.length>50)bad('invalid-argument','Add between 1 and 50 winners.');
- const seen=new Set();for(const w of W){if(typeof w.uid!=='string'||seen.has(w.uid)||!Number.isInteger(w.rank)||w.rank<1||!Number.isInteger(w.prize)||w.prize<0)bad('invalid-argument','Each winner needs a unique player, a whole-number rank and a whole-number prize.');seen.add(w.uid)}
+ const seen=new Set(),ranks=new Set();for(const w of W){if(typeof w.uid!=='string'||seen.has(w.uid)||!Number.isInteger(w.rank)||w.rank<1||ranks.has(w.rank)||!Number.isInteger(w.prize)||w.prize<0)bad('invalid-argument','Each winner needs a unique player, a unique whole-number rank and a whole-number prize.');seen.add(w.uid);ranks.add(w.rank)}
  await db.runTransaction(async t=>{const tr=db.doc('tournaments/'+id),ts=await t.get(tr);if(!ts.exists)bad('not-found','Tournament not found.');const T=ts.data();
   if(!['live','completed'].includes(T.status)||T.resultsPublished)bad('failed-precondition','Results cannot be published for this tournament.');
   const total=W.reduce((a,w)=>a+w.prize,0);if(total>(T.prize||0))bad('failed-precondition','Prizes add up to more than the prize pool.');
